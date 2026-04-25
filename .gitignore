@@ -1,10 +1,16 @@
 dist/
 browser-profile/
 browser-profile-test/
+baseline/
+lib/
 src/**/bin/
 src/**/obj/
 *.user
 *.suo
 *.cache
+*.db
+*.pdb
+*.exe
+*.dll
 Thumbs.db
 Desktop.ini

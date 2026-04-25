@@ -2,37 +2,26 @@
 
 `#AttraX_Spring_Hackathon`
 
-This folder contains the reconstructed, maintainable source workspace for the published package.
+This repository is a stripped recovery workspace for the OZON-PILOT source code.
 
 ## What is included
 
 - `src/LitchiOzonRecovery`: OZON-PILOT main application source project
 - `src/LitchiAutoUpdate`: OZON-PILOT updater source project
-- `baseline`: copied runtime assets from the published package
-- `lib`: copied managed dependencies from the published package
 - `build.cmd`: local build and packaging script
 
-## Recovery scope
+## What is intentionally omitted
 
-This workspace restores:
+- packaged runtime assets
+- copied third-party binary dependencies
+- local browser profiles and caches
+- generated build output
+- bundled database snapshots and environment-specific data
 
-- configuration loading and saving
-- local SQLite database access
-- category and fee asset loading
-- 1688 browser plugin assets
-- updater project source and launch flow
-- a new WinForms recovery shell that reconnects these pieces
+## Notes
 
-## Current recovery features
-
-- Overview panel for the recovered asset inventory
-- Config editor backed by `SettingConfig.txt`
-- Database preview for `SkuTable`, `ShopTable`, and `tb_catch_shop`
-- Database import and export for `.txt`, `.csv`, `.tsv`, and `.xlsx`
-- Category tree and fee rule search
-- Fee rule export to Excel
-- Product workbench for fee lookup and profit estimation
-- WebView2 shell that loads the recovered `1688` browser plugin
+- This is a source-first handoff intended for review, collaboration, and continued reconstruction.
+- Some features that depend on omitted runtime assets will need local placeholders or restored dependencies before a full build can run.
 
 ## Important boundary
 
