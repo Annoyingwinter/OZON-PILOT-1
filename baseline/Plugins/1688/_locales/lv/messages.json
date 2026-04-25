@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice meklēšana pēc attēla 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Izsekojiet cenu vēsturi vietnē 1688 un atrodiet produktu avotus vietnēs AliExpress, Alibaba, Taobao un Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Uzņemiet, lai meklētu pēc attēla"
+  },
+  "context_menus_goote_trans": {
+    "message": "Tulkot lapu/Rādīt oriģinālu"
+  },
+  "context_menus_search_by_image": {
+    "message": "Meklēt pēc attēla vietnē $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Uzņemt vietnē $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Uzņemiet, lai tulkotu"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice ১৬৮৮ এর জন্য চিত্র অনুসারে অনুসন্ধান করুন"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688-এ দামের ইতিহাস সন্ধান করুন এবং আলীএক্সপ্রেস, আলিবাবা, তাওবাও এবং মেড-ইন-চায়নাতে পণ্যের উত্সগুলি সন্ধান করুন।"
+  },
+  "context_menu_screenshot_search": {
+    "message": "চিত্র দ্বারা অনুসন্ধান করতে ক্যাপচার"
+  },
+  "context_menus_goote_trans": {
+    "message": "পৃষ্ঠা অনুবাদ করুন/মূল দেখান"
+  },
+  "context_menus_search_by_image": {
+    "message": "$storeName$ এ চিত্র দ্বারা অনুসন্ধান করুন",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ ক্যাপচার",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "অনুবাদ করতে ক্যাপচার করুন"
+  }
+}

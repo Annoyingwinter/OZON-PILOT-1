@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "Căutare AliPrice după imagine pentru 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Urmăriți istoricul prețurilor pe 1688 și găsiți surse de produse pe AliExpress, Alibaba, Taobao și Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Căutare captură de ecran pentru același stil"
+  },
+  "context_menus_goote_trans": {
+    "message": "Traduceți pagina/Afișați originalul"
+  },
+  "context_menus_search_by_image": {
+    "message": "Căutați după imagine pe $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Capturați la $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Captură pentru a traduce"
+  }
+}

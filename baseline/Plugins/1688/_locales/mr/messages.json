@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "१६८८ साठी प्रतिमेनुसार शोधा"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688 वर किंमतीच्या इतिहासाचा मागोवा घ्या आणि अली-एक्सप्रेस, अलिबाबा, ताबाओ आणि मेड-इन-चाइन वर उत्पादन स्रोत शोधा."
+  },
+  "context_menu_screenshot_search": {
+    "message": "प्रतिमेद्वारे शोधण्यासाठी कॅप्चर करा"
+  },
+  "context_menus_goote_trans": {
+    "message": "पृष्ठाचे भाषांतर करा/मूळ दर्शवा"
+  },
+  "context_menus_search_by_image": {
+    "message": "$storeName$ वर प्रतिमेद्वारे शोधा",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ वर कॅप्चर करा",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "भाषांतर करण्यासाठी कॅप्चर करा"
+  }
+}

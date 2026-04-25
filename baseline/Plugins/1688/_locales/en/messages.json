@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice Search by Image for 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "AliPrice Search by image allows you to easily find the source goods on e-commerce websites."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Capture to search by image"
+  },
+  "context_menus_goote_trans": {
+    "message": "Translate webpage/Restore original"
+  },
+  "context_menus_search_by_image": {
+    "message": "Search by image on $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Capture to $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Capture to translate"
+  }
+}

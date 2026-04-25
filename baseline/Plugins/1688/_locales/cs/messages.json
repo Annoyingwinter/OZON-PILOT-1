@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice Vyhledejte podle obrázku 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Sledujte historii cen na 1688 a najděte zdroje produktů na AliExpress, Alibaba, Taobao a Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Zachytit pro vyhledávání podle obrázku"
+  },
+  "context_menus_goote_trans": {
+    "message": "Přeložit stránku/Zobrazit originál"
+  },
+  "context_menus_search_by_image": {
+    "message": "Hledání podle obrázku na $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Zachyťte do $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Zachytit a přeložit"
+  }
+}

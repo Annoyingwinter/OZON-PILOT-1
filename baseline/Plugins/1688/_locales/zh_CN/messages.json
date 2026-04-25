@@ -1,0 +1,34 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice跨境卖家辅助工具 - 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "AliPrice以图搜同款神器可以让你轻松地在跨境电商网站上找到同款货源。"
+  },
+  "context_menu_screenshot_search": {
+    "message": "截图搜索同款"
+  },
+  "context_menus_goote_trans": {
+    "message": "翻译网页/恢复原文"
+  },
+  "context_menus_search_by_image": {
+    "message": "在$storeName$上以图搜同款",
+    "placeholders": {
+      "storeName": {
+        "content": "$1",
+        "example": "AliPrice"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "截图去$storeName$搜同款",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "截图翻译"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "1688 എന്നതിനായുള്ള AliPrice ഇമേജ് ഉപയോഗിച്ച് തിരയുക"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688 ൽ വില ചരിത്രം ട്രാക്കുചെയ്യുക, അലിഎക്സ്പ്രസ്സ്, അലിബാബ, ടൊബാവോ, മേഡ്-ഇൻ-ചൈന എന്നിവയിൽ ഉൽപ്പന്ന ഉറവിടങ്ങൾ കണ്ടെത്തുക."
+  },
+  "context_menu_screenshot_search": {
+    "message": "ചിത്രം ഉപയോഗിച്ച് തിരയാൻ ക്യാപ്ചർ ചെയ്യുക"
+  },
+  "context_menus_goote_trans": {
+    "message": "പേജ് വിവർത്തനം ചെയ്യുക/ഒറിജിനൽ കാണിക്കുക"
+  },
+  "context_menus_search_by_image": {
+    "message": "Image $storeName$ on ൽ ഇമേജ് പ്രകാരം തിരയുക",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ ലേക്ക് ക്യാപ്‌ചർ ചെയ്യുക",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "വിവർത്തനം ചെയ്യാൻ ക്യാപ്ചർ ചെയ്യുക"
+  }
+}

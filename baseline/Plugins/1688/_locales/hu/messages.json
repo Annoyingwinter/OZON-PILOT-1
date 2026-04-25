@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice Keresés kép alapján, 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Kövesse az árelőzményeket az 1688 oldalon, és keressen termékforrásokat az AliExpress, az Alibaba, a Taobao és a Yiwugo webhelyeken."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Rögzítse a kép alapján történő kereséshez"
+  },
+  "context_menus_goote_trans": {
+    "message": "Oldal lefordítása/Eredeti megjelenítése"
+  },
+  "context_menus_search_by_image": {
+    "message": "Kép szerint kereshet a $storeName$ oldalon",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Rögzítés a $storeName$ helyre",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Rögzítse a fordításhoz"
+  }
+}

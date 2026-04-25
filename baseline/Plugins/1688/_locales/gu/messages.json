@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice ૧૬૮૮ માટે છબી દ્વારા શોધો"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688 પર ભાવ ઇતિહાસનો ટ્ર Trackક કરો અને અલીએક્સપ્રેસ, અલીબાબા, તાઓબાઓ અને મેડ-ઇન-ચાઇના પરના ઉત્પાદન સ્રોત શોધો."
+  },
+  "context_menu_screenshot_search": {
+    "message": "છબી દ્વારા શોધવા માટે કેપ્ચર કરો"
+  },
+  "context_menus_goote_trans": {
+    "message": "પૃષ્ઠનો અનુવાદ કરો/મૂળ બતાવો"
+  },
+  "context_menus_search_by_image": {
+    "message": "$storeName$ પર છબી દ્વારા શોધો",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ પર કેપ્ચર",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "અનુવાદ કરવા માટે કેપ્ચર કરો"
+  }
+}

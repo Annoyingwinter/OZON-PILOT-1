@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice Търсене по изображение за 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Проследете историята на цените на 1688 и намерете източници на продукти в AliExpress, Alibaba, Taobao и Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Снимайте за търсене по изображение"
+  },
+  "context_menus_goote_trans": {
+    "message": "Превод/Показване на оригинала"
+  },
+  "context_menus_search_by_image": {
+    "message": "Търсене по изображение в $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Заснемане в $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Заснемане за превод"
+  }
+}

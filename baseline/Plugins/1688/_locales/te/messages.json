@@ -1,0 +1,30 @@
+{
+  "EXTENSION_NAME": {
+    "message": "1688 కోసం చిత్రం ద్వారా AliPrice శోధించండి"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688 లో ధర చరిత్రను ట్రాక్ చేయండి మరియు అలీఎక్స్ప్రెస్, అలీబాబా, టావోబావో మరియు మేడ్-ఇన్-చైనాలో ఉత్పత్తి వనరులను కనుగొనండి."
+  },
+  "context_menu_screenshot_search": {
+    "message": "అదే శైలి కోసం స్క్రీన్‌షాట్ శోధన"
+  },
+  "context_menus_search_by_image": {
+    "message": "Image $storeName$ on లో చిత్రం ద్వారా శోధించండి",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ కు సంగ్రహించండి",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "అనువదించడానికి క్యాప్చర్ చేయండి"
+  }
+}

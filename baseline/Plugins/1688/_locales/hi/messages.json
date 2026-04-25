@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice छवि द्वारा खोजें 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "1688 पर मूल्य इतिहास को ट्रैक करें और अलीएक्सप्रेस, अलीबाबा, Taobao और मेड-इन-चाइना पर उत्पाद स्रोत खोजें।"
+  },
+  "context_menu_screenshot_search": {
+    "message": "छवि द्वारा खोज करने के लिए कैप्चर करें"
+  },
+  "context_menus_goote_trans": {
+    "message": "पेज का अनुवाद करें/मूल दिखाएँ"
+  },
+  "context_menus_search_by_image": {
+    "message": "$storeName$ पर छवि द्वारा खोजें",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "$storeName$ पर कब्जा",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "अनुवाद करने के लिए कैप्चर करें"
+  }
+}

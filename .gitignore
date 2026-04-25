@@ -1,0 +1,10 @@
+dist/
+browser-profile/
+browser-profile-test/
+src/**/bin/
+src/**/obj/
+*.user
+*.suo
+*.cache
+Thumbs.db
+Desktop.ini

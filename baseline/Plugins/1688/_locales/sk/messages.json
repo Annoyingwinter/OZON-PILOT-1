@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "Nákupný asistent AliPrice za 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Sledujte históriu cien na 1688 a nájdite zdroje produktov na serveroch AliExpress, Alibaba, Taobao a Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Vyhľadávanie snímky obrazovky pre rovnaký štýl"
+  },
+  "context_menus_goote_trans": {
+    "message": "Preložiť stránku/Zobraziť originál"
+  },
+  "context_menus_search_by_image": {
+    "message": "Vyhľadávajte podľa obrázka v obchode $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Zachytiť $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Zachytiť a preložiť"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "جستجوی AliPrice براساس تصویر برای 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "تاریخچه قیمت را در 1688 دنبال کنید و منابع محصول را در AliExpress ، Alibaba ، Taobao و Yiwugo پیدا کنید."
+  },
+  "context_menu_screenshot_search": {
+    "message": "عکسبرداری برای جستجو بر اساس تصویر"
+  },
+  "context_menus_goote_trans": {
+    "message": "ترجمه صفحه/نمایش اصلی"
+  },
+  "context_menus_search_by_image": {
+    "message": "جستجو بر اساس تصویر در $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "گرفتن در $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "ضبط برای ترجمه"
+  }
+}

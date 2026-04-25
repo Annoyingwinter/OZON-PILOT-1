@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice በምስል ፍለጋ ለ 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "የዋጋ ታሪክን በ 1688 ላይ ይከታተሉ እና በ AliExpress ፣ በአሊባባ ፣ በታኦባዎ እና በሠራ-በቻይና የምርት ምንጮችን ያግኙ ፡፡"
+  },
+  "context_menu_screenshot_search": {
+    "message": "በምስል ለመፈለግ ያንሱ"
+  },
+  "context_menus_goote_trans": {
+    "message": "ገጽ ተርጉም/የመጀመሪያውን አሳይ"
+  },
+  "context_menus_search_by_image": {
+    "message": "በ $storeName$ ላይ በምስል ይፈልጉ",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "ወደ $storeName$ ይያዙ",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "ለመተርጎም ይቅረጹ"
+  }
+}

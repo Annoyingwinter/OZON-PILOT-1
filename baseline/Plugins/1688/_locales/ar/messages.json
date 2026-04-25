@@ -1,0 +1,23 @@
+{
+  "EXTENSION_NAME": {
+    "message": "AliPrice، ابحث بالصورة عن 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "تتبع سجل الأسعار على 1688 وابحث عن مصادر المنتجات على AliExpress و Alibaba و Taobao و Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "التقاط للبحث عن طريق الصورة"
+  },
+  "context_menus_goote_trans": {
+    "message": "ترجمة الصفحة/إظهار الأصل"
+  },
+  "context_menus_search_by_image": {
+    "message": "البحث بالصورة على بابا"
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "القبض على علي بابا"
+  },
+  "context_menus_translator": {
+    "message": "التقاط للترجمة"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "EXTENSION_NAME": {
+    "message": "Recherche par image sur AliPrice pour 1688"
+  },
+  "EXTENSION_DESCRIPTION": {
+    "message": "Suivez l'historique des prix sur 1688 et trouvez des sources de produits sur AliExpress, Alibaba, Taobao et Yiwugo."
+  },
+  "context_menu_screenshot_search": {
+    "message": "Capturer pour rechercher par image"
+  },
+  "context_menus_goote_trans": {
+    "message": "Traduire la page/Afficher l'original"
+  },
+  "context_menus_search_by_image": {
+    "message": "Recherche par image sur $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_search_by_image_capture": {
+    "message": "Capture vers $storeName$",
+    "placeholders": {
+      "storeName": {
+        "content": "$1"
+      }
+    }
+  },
+  "context_menus_translator": {
+    "message": "Capturer pour traduire"
+  }
+}
