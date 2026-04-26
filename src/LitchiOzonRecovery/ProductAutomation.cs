@@ -178,6 +178,12 @@ namespace LitchiOzonRecovery
                 return string.Empty;
             }
 
+            string deepSeekApiKey = Environment.GetEnvironmentVariable(DeepSeekApiKeyEnvVar);
+            if (string.IsNullOrWhiteSpace(deepSeekApiKey))
+            {
+                return string.Empty;
+            }
+
             try
             {
                 JObject request = new JObject();
@@ -194,7 +200,7 @@ namespace LitchiOzonRecovery
                     new JProperty("content", "Category: " + categoryText + "\nSchema: {\"keyword\":\"precise english keyword\"}")));
                 request["messages"] = messages;
 
-                JObject response = JObject.Parse(PostDeepSeekJson(request.ToString(Formatting.None)));
+                JObject response = JObject.Parse(PostDeepSeekJson(request.ToString(Formatting.None), deepSeekApiKey));
                 string content = Convert.ToString(response.SelectToken("choices[0].message.content") ?? string.Empty);
                 JObject json = JObject.Parse(ExtractJsonObject(content));
                 return CleanPublicText(Convert.ToString(json["keyword"] ?? string.Empty));

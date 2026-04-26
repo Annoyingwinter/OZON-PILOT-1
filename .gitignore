@@ -1,4 +1,5 @@
 dist/
+public-release-v*/
 browser-profile/
 browser-profile-test/
 baseline/

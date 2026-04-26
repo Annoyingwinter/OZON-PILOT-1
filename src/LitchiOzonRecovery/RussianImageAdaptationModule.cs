@@ -396,7 +396,7 @@ namespace LitchiOzonRecovery
             }
 
             EncoderParameters parameters = new EncoderParameters(1);
-            parameters.Param[0] = new EncoderParameter(Encoder.Quality, 92L);
+            parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 92L);
             image.Save(path, jpegCodec, parameters);
         }
 
