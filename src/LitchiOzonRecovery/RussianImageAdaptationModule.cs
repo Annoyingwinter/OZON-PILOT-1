@@ -201,7 +201,9 @@ namespace LitchiOzonRecovery
             builder.Append("First improve it as a super-resolution commercial product image: sharper details, cleaner edges, higher perceived resolution, no blur, no compression artifacts. ");
             builder.Append("Keep the same product identity, shape, color, material, and key visible features. ");
             builder.Append("Make the scene feel natural for Russia: clean apartment or marketplace lifestyle context, Cyrillic-safe visual style, winter/neutral daylight when useful, no Chinese marketplace watermarks, no 1688 UI, no fake brand logos, no certification marks, no misleading packaging claims. ");
-            builder.Append("Use realistic commercial photography, product centered, final composition vertical 3:4, no text unless already present on the product, no extra accessories that change the sold item. ");
+            builder.Append("Use realistic commercial photography, product centered, final composition vertical 3:4, no extra accessories that change the sold item. ");
+            builder.Append("Add concise Russian product text when useful for marketplace localization, such as a Russian category title and factual specification labels. ");
+            builder.Append("Use only safe Cyrillic text based on the product facts; do not add prices, discounts, free shipping, invoice claims, guarantees, certification badges, contact instructions, QR codes, or invented brand names. ");
             builder.Append("Product title: ").Append(request.ProductTitle ?? string.Empty).Append(". ");
 
             if (!string.IsNullOrWhiteSpace(request.RussianTitle))

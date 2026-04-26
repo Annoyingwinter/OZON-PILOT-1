@@ -176,8 +176,9 @@ The module asks the image model to:
 - keep product identity, shape, color, material, and visible features
 - adapt the setting for Russian consumers and Ozon listing use
 - produce a final vertical 3:4 image, normalized to `1200x1600` by default
+- add concise Russian product text when useful, such as category titles and factual specification labels
 - remove Chinese marketplace watermarks and 1688 UI context
-- avoid fake logos, certifications, package claims, and misleading accessories
+- avoid prices, discounts, free shipping, invoice claims, guarantees, certification badges, contact instructions, QR codes, fake logos, invented brands, package claims, and misleading accessories
 - use realistic commercial product photography
 
 ## PR/module delivery note
