@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -18,6 +21,8 @@ namespace LitchiOzonRecovery
         public string Size { get; set; }
         public string Quality { get; set; }
         public string OutputFormat { get; set; }
+        public int TargetWidth { get; set; }
+        public int TargetHeight { get; set; }
         public int TimeoutMs { get; set; }
 
         public static RussianImageAdaptationOptions FromEnvironment()
@@ -43,6 +48,8 @@ namespace LitchiOzonRecovery
                 Size = FirstNonEmpty(Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_SIZE"), "1024x1024"),
                 Quality = FirstNonEmpty(Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_QUALITY"), "medium"),
                 OutputFormat = FirstNonEmpty(Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_OUTPUT_FORMAT"), "jpeg"),
+                TargetWidth = ParseInt(Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_TARGET_WIDTH"), 1200),
+                TargetHeight = ParseInt(Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_TARGET_HEIGHT"), 1600),
                 TimeoutMs = 180000
             };
         }
@@ -58,6 +65,12 @@ namespace LitchiOzonRecovery
             }
 
             return string.Empty;
+        }
+
+        private static int ParseInt(string value, int fallback)
+        {
+            int result;
+            return int.TryParse(value, out result) && result > 0 ? result : fallback;
         }
     }
 
@@ -185,9 +198,10 @@ namespace LitchiOzonRecovery
         {
             StringBuilder builder = new StringBuilder();
             builder.Append("Create an Ozon marketplace product photo adapted for Russian consumers. ");
+            builder.Append("First improve it as a super-resolution commercial product image: sharper details, cleaner edges, higher perceived resolution, no blur, no compression artifacts. ");
             builder.Append("Keep the same product identity, shape, color, material, and key visible features. ");
             builder.Append("Make the scene feel natural for Russia: clean apartment or marketplace lifestyle context, Cyrillic-safe visual style, winter/neutral daylight when useful, no Chinese marketplace watermarks, no 1688 UI, no fake brand logos, no certification marks, no misleading packaging claims. ");
-            builder.Append("Use realistic commercial photography, product centered, no text unless already present on the product, no extra accessories that change the sold item. ");
+            builder.Append("Use realistic commercial photography, product centered, final composition vertical 3:4, no text unless already present on the product, no extra accessories that change the sold item. ");
             builder.Append("Product title: ").Append(request.ProductTitle ?? string.Empty).Append(". ");
 
             if (!string.IsNullOrWhiteSpace(request.RussianTitle))
@@ -258,6 +272,7 @@ namespace LitchiOzonRecovery
 
             if (!string.IsNullOrEmpty(imageUrl))
             {
+                result.ImagePath = DownloadAndNormalizeImage(imageUrl, request, options);
                 result.Success = true;
                 return result;
             }
@@ -282,7 +297,105 @@ namespace LitchiOzonRecovery
                 : SanitizeFileName(request.OutputFileNamePrefix);
             string path = Path.Combine(options.OutputDirectory, prefix + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + extension);
             File.WriteAllBytes(path, Convert.FromBase64String(StripDataUrlPrefix(base64)));
-            return path;
+            return NormalizeToThreeByFour(path, options);
+        }
+
+        private static string DownloadAndNormalizeImage(
+            string imageUrl,
+            RussianImageAdaptationRequest request,
+            RussianImageAdaptationOptions options)
+        {
+            if (!Directory.Exists(options.OutputDirectory))
+            {
+                Directory.CreateDirectory(options.OutputDirectory);
+            }
+
+            string extension = "." + (string.IsNullOrWhiteSpace(options.OutputFormat) ? "jpg" : options.OutputFormat.Trim().ToLowerInvariant());
+            string prefix = string.IsNullOrWhiteSpace(request.OutputFileNamePrefix)
+                ? "russian-image"
+                : SanitizeFileName(request.OutputFileNamePrefix);
+            string path = Path.Combine(options.OutputDirectory, prefix + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-remote" + extension);
+
+            using (WebClient client = new WebClient())
+            {
+                client.DownloadFile(imageUrl, path);
+            }
+
+            return NormalizeToThreeByFour(path, options);
+        }
+
+        private static string NormalizeToThreeByFour(string imagePath, RussianImageAdaptationOptions options)
+        {
+            int targetWidth = options.TargetWidth <= 0 ? 1200 : options.TargetWidth;
+            int targetHeight = options.TargetHeight <= 0 ? 1600 : options.TargetHeight;
+            if (targetWidth * 4 != targetHeight * 3)
+            {
+                targetHeight = (int)Math.Round(targetWidth * 4m / 3m, MidpointRounding.AwayFromZero);
+            }
+
+            string directory = Path.GetDirectoryName(imagePath);
+            string name = Path.GetFileNameWithoutExtension(imagePath);
+            string extension = "." + (string.IsNullOrWhiteSpace(options.OutputFormat) ? "jpg" : options.OutputFormat.Trim().ToLowerInvariant());
+            string normalizedPath = Path.Combine(directory, name + "-3x4" + extension);
+
+            using (Image source = Image.FromFile(imagePath))
+            using (Bitmap canvas = new Bitmap(targetWidth, targetHeight))
+            using (Graphics graphics = Graphics.FromImage(canvas))
+            {
+                graphics.Clear(Color.White);
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                decimal scale = Math.Min((decimal)targetWidth / source.Width, (decimal)targetHeight / source.Height);
+                int drawWidth = Math.Max(1, (int)Math.Round(source.Width * scale));
+                int drawHeight = Math.Max(1, (int)Math.Round(source.Height * scale));
+                int left = (targetWidth - drawWidth) / 2;
+                int top = (targetHeight - drawHeight) / 2;
+                graphics.DrawImage(source, new Rectangle(left, top, drawWidth, drawHeight));
+
+                SaveImage(canvas, normalizedPath, options.OutputFormat);
+            }
+
+            return normalizedPath;
+        }
+
+        private static void SaveImage(Image image, string path, string outputFormat)
+        {
+            string format = string.IsNullOrWhiteSpace(outputFormat) ? "jpeg" : outputFormat.Trim().ToLowerInvariant();
+            if (format == "png")
+            {
+                image.Save(path, ImageFormat.Png);
+                return;
+            }
+
+            if (format == "webp")
+            {
+                image.Save(path, ImageFormat.Jpeg);
+                return;
+            }
+
+            ImageCodecInfo jpegCodec = null;
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+            for (int i = 0; i < codecs.Length; i++)
+            {
+                if (codecs[i].FormatID == ImageFormat.Jpeg.Guid)
+                {
+                    jpegCodec = codecs[i];
+                    break;
+                }
+            }
+
+            if (jpegCodec == null)
+            {
+                image.Save(path, ImageFormat.Jpeg);
+                return;
+            }
+
+            EncoderParameters parameters = new EncoderParameters(1);
+            parameters.Param[0] = new EncoderParameter(Encoder.Quality, 92L);
+            image.Save(path, jpegCodec, parameters);
         }
 
         private static string StripDataUrlPrefix(string value)

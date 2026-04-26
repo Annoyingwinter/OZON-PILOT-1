@@ -5,6 +5,7 @@ This module generates or edits product photos for Russian/Ozon marketplace conte
 ## Files
 
 - `src/LitchiOzonRecovery/RussianImageAdaptationModule.cs`
+- `src/LitchiOzonRecovery/OzonProductImageAdaptationModule.cs`
 - `src/LitchiOzonRecovery/ProductImagePublisher.cs`
 - `src/LitchiOzonRecovery/LitchiOzonRecovery.csproj`
 - `deploy/ozon-image-server/install-ubuntu.sh`
@@ -28,6 +29,8 @@ $env:RUSSIAN_IMAGE_SIZE = "1024x1024"
 $env:RUSSIAN_IMAGE_QUALITY = "medium"
 $env:RUSSIAN_IMAGE_OUTPUT_FORMAT = "jpeg"
 $env:RUSSIAN_IMAGE_OUTPUT_DIR = "D:\ozon-pilot-images"
+$env:RUSSIAN_IMAGE_TARGET_WIDTH = "1200"
+$env:RUSSIAN_IMAGE_TARGET_HEIGHT = "1600"
 ```
 
 Image hosting settings for the public Ubuntu server:
@@ -95,56 +98,49 @@ RussianImageAdaptationResult image = module.AdaptProductImage(
 
 Local edits call `/v1/images/edits`. URL-based adaptation calls `/v1/responses` with the `image_generation` tool.
 
-## Hook point for Ozon upload
+## System integration
 
-Current Ozon payload is built in `ProductAutomationService.BuildOzonImportItem`. The clean integration point is before calling `BuildOzonImportItem`, inside `UploadToOzon`, after text enrichment:
+This PR wires the module into the existing automation script flow:
+
+- search all 1688 products
+- collect product detail pages
+- score and filter candidates
+- keep only passed products with `Decision == "Go"`
+- enrich title, description, and Ozon attributes
+- adapt the passed product image
+- upload the adapted image to the public image server
+- build and submit the Ozon import payload
+
+The log callback is passed from `MainForm.AppendAutomationLog`, so progress appears in the existing automation log panel. There is no separate command-line UI.
+
+The system adapter is `OzonProductImageAdaptationModule`. It keeps the reusable image logic isolated from the app-specific `SourceProduct` model:
 
 ```csharp
-EnrichProductWithDeepSeek(product, options, categoryAttributes);
-
-RussianImageAdaptationResult adapted = imageModule.AdaptProductImage(
-    new RussianImageAdaptationRequest
-    {
-        ProductTitle = product.Title,
-        RussianTitle = product.RussianTitle,
-        Category = product.Keyword,
-        SourceImageUrl = product.MainImage,
-        OutputFileNamePrefix = product.OfferId
-    },
-    RussianImageAdaptationOptions.FromEnvironment());
-
-if (adapted.Success && !string.IsNullOrEmpty(adapted.ImageUrl))
-{
-    product.MainImage = adapted.ImageUrl;
-    if (!product.Images.Contains(adapted.ImageUrl))
-    {
-        product.Images.Insert(0, adapted.ImageUrl);
-    }
-}
+OzonProductImageAdaptationModule adapter = new OzonProductImageAdaptationModule();
+adapter.AdaptPassedProductImage(product, AppendAutomationLog);
 ```
 
-If the image API returns only a local file, publish it before replacing Ozon images:
+Expected log lines:
 
-```csharp
-string publicImageUrl = adapted.ImageUrl;
-if (adapted.Success && string.IsNullOrEmpty(publicImageUrl) && !string.IsNullOrEmpty(adapted.ImagePath))
-{
-    IProductImagePublisher publisher = new HttpProductImagePublisher(
-        HttpProductImagePublisherOptions.FromEnvironment());
-    publicImageUrl = publisher.Publish(adapted.ImagePath);
-}
-
-if (!string.IsNullOrEmpty(publicImageUrl))
-{
-    product.MainImage = publicImageUrl;
-    if (!product.Images.Contains(publicImageUrl))
-    {
-        product.Images.Insert(0, publicImageUrl);
-    }
-}
+```text
+[upload] selected products after filtering: 3.
+[upload] prepare 1/3: 123456
+[image-adapter] processing 123456: super-resolution, Russian culture, 3:4.
+[image-adapter] publishing 123456: D:\ozon-pilot-images\123456-20260426-120000-3x4.jpeg
+[image-adapter] done 123456: http://47.76.248.181/ozon-images/...
 ```
 
 Important: Ozon import expects image URLs reachable by Ozon. The configured public Ubuntu server is intended to provide those URLs.
+
+## Output contract
+
+For each passed product, the adapter mutates the existing `SourceProduct` in place:
+
+- `MainImage` becomes the public URL of the adapted image
+- `Images[0]` becomes the same public URL
+- original supplier images stay in `Images` after the adapted image
+
+If generation or upload fails, the adapter logs the error and leaves the original product image in place so the upload flow can continue.
 
 ## Ubuntu image server setup
 
@@ -176,8 +172,10 @@ UPLOAD_TOKEN='same-token' bash deploy/ozon-image-server/configure-existing-nginx
 
 The module asks the image model to:
 
+- improve the source image with super-resolution/commercial sharpness
 - keep product identity, shape, color, material, and visible features
 - adapt the setting for Russian consumers and Ozon listing use
+- produce a final vertical 3:4 image, normalized to `1200x1600` by default
 - remove Chinese marketplace watermarks and 1688 UI context
 - avoid fake logos, certifications, package claims, and misleading accessories
 - use realistic commercial product photography
@@ -187,7 +185,8 @@ The module asks the image model to:
 Keep this module isolated in a PR:
 
 - add `RussianImageAdaptationModule.cs`
+- add `OzonProductImageAdaptationModule.cs`
 - add `ProductImagePublisher.cs`
 - add the `.csproj` compile include
 - add this document
-- keep production upload wiring as an explicit follow-up so listing owners can choose when generated images replace original supplier images
+- wire `ProductAutomationService.UploadToOzon` with a log callback so the existing automation log shows image generation, publishing, and output URL

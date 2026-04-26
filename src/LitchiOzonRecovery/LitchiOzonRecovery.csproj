@@ -75,6 +75,7 @@
     <Compile Include="MainForm.cs" />
     <Compile Include="Models.cs" />
     <Compile Include="OzonPlusIntegration.cs" />
+    <Compile Include="OzonProductImageAdaptationModule.cs" />
     <Compile Include="ProductImagePublisher.cs" />
     <Compile Include="ProductAutomation.cs" />
     <Compile Include="Program.cs" />
