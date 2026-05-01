@@ -93,6 +93,7 @@ namespace LitchiOzonRecovery
         private const string DeepSeekChatEndpoint = "https://api.deepseek.com/chat/completions";
         private const string DeepSeekApiKeyEnvVar = "DEEPSEEK_API_KEY";
         private static bool _tlsInitialized;
+        private readonly OzonProductImageAdaptationModule _imageAdapter = new OzonProductImageAdaptationModule();
 
         public SourcingResult Collect1688Candidates(IList<SourcingSeed> seeds, AppConfig config, SourcingOptions options)
         {
@@ -177,6 +178,12 @@ namespace LitchiOzonRecovery
                 return string.Empty;
             }
 
+            string deepSeekApiKey = Environment.GetEnvironmentVariable(DeepSeekApiKeyEnvVar);
+            if (string.IsNullOrWhiteSpace(deepSeekApiKey))
+            {
+                return string.Empty;
+            }
+
             try
             {
                 JObject request = new JObject();
@@ -193,7 +200,7 @@ namespace LitchiOzonRecovery
                     new JProperty("content", "Category: " + categoryText + "\nSchema: {\"keyword\":\"precise english keyword\"}")));
                 request["messages"] = messages;
 
-                JObject response = JObject.Parse(PostDeepSeekJson(request.ToString(Formatting.None)));
+                JObject response = JObject.Parse(PostDeepSeekJson(request.ToString(Formatting.None), deepSeekApiKey));
                 string content = Convert.ToString(response.SelectToken("choices[0].message.content") ?? string.Empty);
                 JObject json = JObject.Parse(ExtractJsonObject(content));
                 return CleanPublicText(Convert.ToString(json["keyword"] ?? string.Empty));
@@ -205,6 +212,11 @@ namespace LitchiOzonRecovery
         }
 
         public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey)
+        {
+            return UploadToOzon(products, options, clientId, apiKey, null);
+        }
+
+        public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey, Action<string> log)
         {
             if (products == null || products.Count == 0)
             {
@@ -223,6 +235,7 @@ namespace LitchiOzonRecovery
 
             JArray items = new JArray();
             JArray categoryAttributes = LoadOzonCategoryAttributes(options, clientId, apiKey);
+            WriteLog(log, "[upload] selected products after filtering: " + products.Count + ".");
             for (int i = 0; i < products.Count; i++)
             {
                 SourceProduct product = products[i];
@@ -231,7 +244,9 @@ namespace LitchiOzonRecovery
                     continue;
                 }
 
+                WriteLog(log, "[upload] prepare " + (i + 1) + "/" + products.Count + ": " + SafeOfferId(product.OfferId));
                 EnrichProductWithDeepSeek(product, options, categoryAttributes);
+                _imageAdapter.AdaptPassedProductImage(product, log);
                 items.Add(BuildOzonImportItem(product, options));
             }
 
@@ -1142,6 +1157,14 @@ namespace LitchiOzonRecovery
             }
 
             return builder.Length == 0 ? Guid.NewGuid().ToString("N").Substring(0, 12) : builder.ToString();
+        }
+
+        private static void WriteLog(Action<string> log, string message)
+        {
+            if (log != null)
+            {
+                log(message);
+            }
         }
 
         private static string CleanPublicText(string value)

@@ -1502,7 +1502,8 @@ namespace LitchiOzonRecovery
                             uploadProducts,
                             options,
                             _ozonClientIdBox.Text.Trim(),
-                            _ozonApiKeyBox.Text.Trim());
+                            _ozonApiKeyBox.Text.Trim(),
+                            AppendAutomationLog);
 
                         if (uploadResult.Success)
                         {
@@ -1975,7 +1976,8 @@ namespace LitchiOzonRecovery
                     selected,
                     options,
                     _ozonClientIdBox.Text.Trim(),
-                    _ozonApiKeyBox.Text.Trim());
+                    _ozonApiKeyBox.Text.Trim(),
+                    AppendAutomationLog);
 
                 if (!result.Success)
                 {

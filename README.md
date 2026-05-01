@@ -9,6 +9,7 @@ This repository is a public stripped recovery workspace for the OZON-PILOT sourc
 - `src/LitchiOzonRecovery`: OZON-PILOT main application source project
 - `src/LitchiAutoUpdate`: OZON-PILOT updater source project
 - `build.cmd`: local build and packaging script
+- `docs/russian-image-adaptation-module.md`: optional module for generating Russian-market product photos through local CodexManager/Image API
 
 ## What is intentionally omitted
 
