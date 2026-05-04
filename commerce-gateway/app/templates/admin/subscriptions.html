@@ -1,0 +1,27 @@
+{% extends "admin/base.html" %}
+{% set title = "Subscriptions" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Subscriptions</h2>
+    <span class="muted">Latest 200 records</span>
+  </div>
+  <table>
+    <thead><tr><th>Created</th><th>ID</th><th>User</th><th>Plan</th><th>Status</th><th>Period Start</th><th>Period End</th><th>Renew</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.created_at }}</td>
+        <td><code>{{ row.id }}</code></td>
+        <td><code>{{ row.user_id }}</code></td>
+        <td><code>{{ row.plan_id }}</code></td>
+        <td><span class="pill {% if row.status == 'active' %}ok{% else %}warn{% endif %}">{{ row.status }}</span></td>
+        <td>{{ row.current_period_start }}</td>
+        <td>{{ row.current_period_end }}</td>
+        <td><span class="pill {% if row.auto_renew %}ok{% else %}warn{% endif %}">{{ row.auto_renew }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

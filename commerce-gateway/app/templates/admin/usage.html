@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% set title = "Usage Logs" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Usage Events</h2>
+    <span class="muted">Latest 300 events</span>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>User</th><th>API Key</th><th>Endpoint</th><th>Status</th><th>Units</th><th>Latency</th><th>Request</th><th>Error</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.ts }}</td>
+        <td><code>{{ row.user_id }}</code></td>
+        <td>{% if row.api_key_id %}<code>{{ row.api_key_id }}</code>{% endif %}</td>
+        <td class="truncate">{{ row.endpoint }}</td>
+        <td><span class="pill {% if row.status_code >= 500 %}danger{% elif row.status_code >= 400 %}warn{% else %}ok{% endif %}">{{ row.status_code }}</span></td>
+        <td>{{ row.billable_units }}</td>
+        <td>{{ row.latency_ms }}ms</td>
+        <td><code>{{ row.request_id }}</code></td>
+        <td>{{ row.error_code or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -127,8 +127,8 @@ namespace LitchiOzonRecovery
         private const string OzonSellerApiBaseUrl = "https://api-seller.ozon.ru";
         private const string DeepSeekChatEndpoint = "https://api.deepseek.com/chat/completions";
         private const string DeepSeekApiKeyEnvVar = "DEEPSEEK_API_KEY";
-        private const string DefaultDeepSeekApiKey = "sk-ac7bb8242b7d4459aef524fdc7b0cb07";
         private static bool _tlsInitialized;
+        private readonly OzonProductImageAdaptationModule _imageAdapter = new OzonProductImageAdaptationModule();
 
         public SourcingResult Collect1688Candidates(IList<SourcingSeed> seeds, AppConfig config, SourcingOptions options)
         {
@@ -242,6 +242,11 @@ namespace LitchiOzonRecovery
 
         public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey)
         {
+            return UploadToOzon(products, options, clientId, apiKey, null);
+        }
+
+        public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey, Action<string> log)
+        {
             if (products == null || products.Count == 0)
             {
                 return new OzonImportResult { Success = false, ErrorMessage = "No products selected." };
@@ -277,6 +282,7 @@ namespace LitchiOzonRecovery
                     continue;
                 }
 
+                WriteLog(log, "[upload] prepare " + (i + 1) + "/" + products.Count + ": " + SafeText(product.OfferId));
                 NormalizeProductImages(product);
                 if (string.IsNullOrEmpty(product.MainImage))
                 {
@@ -288,6 +294,7 @@ namespace LitchiOzonRecovery
                 }
 
                 EnrichProductWithDeepSeek(product, options, categoryAttributes);
+                _imageAdapter.AdaptPassedProductImage(product, log);
                 try
                 {
                     items.Add(BuildOzonImportItem(product, options, categoryAttributes, clientId, apiKey));
@@ -1789,7 +1796,7 @@ namespace LitchiOzonRecovery
         private static string ResolveDeepSeekApiKey()
         {
             string value = Environment.GetEnvironmentVariable(DeepSeekApiKeyEnvVar);
-            return string.IsNullOrWhiteSpace(value) ? DefaultDeepSeekApiKey : value.Trim();
+            return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
         }
 
         private static void AddDimensionAttribute(SourceProduct product, string name, string value)
@@ -3369,16 +3376,13 @@ namespace LitchiOzonRecovery
             input.FulfillmentMode = string.IsNullOrEmpty(options == null ? null : options.FulfillmentMode) ? "FBS" : options.FulfillmentMode;
 
             ProfitEstimate estimate = ProfitCalculatorService.Calculate(config, options == null ? null : options.FeeRules, input);
-            decimal formulaPrice = estimate != null && estimate.SuggestedSellingPrice > 0m ? estimate.SuggestedSellingPrice : sourcePrice;
-
-            decimal multiplier = options == null || options.PriceMultiplier <= 0 ? 0m : options.PriceMultiplier;
-            if (multiplier > 0m)
+            if (estimate == null || estimate.MatchedRule == null)
             {
-                decimal floorPrice = ConvertPriceCurrency(sourcePrice * multiplier, currency, options == null ? 0m : options.RubPerCny);
-                formulaPrice = Math.Max(formulaPrice, floorPrice);
+                throw new InvalidOperationException("没有匹配的国际物流/运费规则，无法按定价公式计算售价。请先补齐 fee.txt 或选择匹配类目。");
             }
 
-            return Math.Ceiling(Math.Max(1m, formulaPrice));
+            decimal formulaPrice = estimate != null && estimate.SuggestedSellingPrice > 0m ? estimate.SuggestedSellingPrice : sourcePrice;
+            return RoundMoney(Math.Max(1m, formulaPrice));
         }
 
         private static List<long> BuildFeeRuleCategoryCandidates(SourcingOptions options)
@@ -3428,14 +3432,15 @@ namespace LitchiOzonRecovery
             return value;
         }
 
+        private static decimal RoundMoney(decimal value)
+        {
+            return Math.Round(value, 2, MidpointRounding.AwayFromZero);
+        }
+
         private JObject BuildOzonImportItem(SourceProduct product, SourcingOptions options, JArray categoryAttributes, string clientId, string apiKey)
         {
             string currency = string.IsNullOrEmpty(options.CurrencyCode) ? "CNY" : options.CurrencyCode;
             decimal price = CalculateOzonListingPrice(product, options);
-            if (options.MinOzonPrice > 0 && price < options.MinOzonPrice)
-            {
-                price = Math.Ceiling(options.MinOzonPrice);
-            }
 
             string offerId = BuildOzonOfferId(product);
             string primaryImage = !string.IsNullOrEmpty(product.MainImage) ? product.MainImage : (product.Images.Count > 0 ? product.Images[0] : string.Empty);
@@ -3455,7 +3460,7 @@ namespace LitchiOzonRecovery
             item["name"] = Truncate(CleanPublicText(title), 500);
             item["offer_id"] = offerId;
             item["barcode"] = string.Empty;
-            item["price"] = price.ToString("0");
+            item["price"] = price.ToString("0.##", CultureInfo.InvariantCulture);
             item["currency_code"] = currency;
             item["vat"] = string.IsNullOrEmpty(options.Vat) ? "0" : options.Vat;
             item["height"] = height;
@@ -4199,6 +4204,14 @@ namespace LitchiOzonRecovery
         private static string BuildOzonOfferId(SourceProduct product)
         {
             return "LZ1688-" + SafeOfferId(product == null ? null : product.OfferId);
+        }
+
+        private static void WriteLog(Action<string> log, string message)
+        {
+            if (log != null)
+            {
+                log(message);
+            }
         }
 
         private static string CleanPublicText(string value)

@@ -522,9 +522,9 @@ namespace LitchiOzonRecovery
             decimal logisticsFee = rule == null ? 0m : ResolveLogisticsFee(rule, input.FulfillmentMode, input.WeightGrams);
             decimal cost = input.SourcePrice + input.OtherCost + deliveryFee + logisticsFee;
             decimal denominator = 1m - (commissionPercent / 100m) - (promotionPercent / 100m) - (targetProfit / 100m);
-            if (denominator <= 0.05m)
+            if (denominator <= 0m)
             {
-                denominator = 0.05m;
+                throw new InvalidOperationException("平台佣金比例、推广费用比例、目标利润率之和必须小于 100%。");
             }
 
             decimal suggested = RoundMoney(cost / denominator);

@@ -50,6 +50,16 @@ namespace LitchiOzonRecovery
             get { return EnsureDirectory(Path.Combine(_root, "browser-profile")); }
         }
 
+        public string OzonLabelDirectory
+        {
+            get { return EnsureDirectory(Path.Combine(_root, "ozon-labels")); }
+        }
+
+        public string UiStateFile
+        {
+            get { return Path.Combine(_root, "ozon-pilot-ui-state.json"); }
+        }
+
         public string LegacyBrowserProfileFolder
         {
             get { return Path.Combine(_root, "Chrome", "EBWebView"); }

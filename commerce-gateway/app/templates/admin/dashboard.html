@@ -1,0 +1,37 @@
+{% extends "admin/base.html" %}
+{% set title = "Dashboard" %}
+{% block content %}
+<div class="grid">
+  <div class="card"><div class="label">Users</div><div class="metric">{{ users_count }}</div></div>
+  <div class="card"><div class="label">Subscriptions</div><div class="metric">{{ subscription_count }}</div></div>
+  <div class="card"><div class="label">Licenses</div><div class="metric">{{ license_count }}</div></div>
+  <div class="card"><div class="label">24h Billable Units</div><div class="metric">{{ usage_units }}</div></div>
+</div>
+<div class="grid">
+  <div class="card"><div class="label">24h Usage Events</div><div class="metric">{{ usage_count }}</div></div>
+  <div class="card"><div class="label">24h Error Events</div><div class="metric">{{ error_count }}</div></div>
+  <div class="card"><div class="label">24h Error Rate</div><div class="metric">{{ error_rate }}%</div></div>
+  <div class="card"><div class="label">24h Upstream Errors</div><div class="metric">{{ upstream_error_count }}</div></div>
+</div>
+<section class="panel">
+  <div class="panel-head">
+    <h2>Recent Usage</h2>
+    <span class="muted">Latest 20 events</span>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>User</th><th>Endpoint</th><th>Status</th><th>Units</th><th>Error</th></tr></thead>
+    <tbody>
+      {% for row in usage %}
+      <tr>
+        <td>{{ row.ts }}</td>
+        <td><code>{{ row.user_id }}</code></td>
+        <td class="truncate">{{ row.endpoint }}</td>
+        <td><span class="pill {% if row.status_code >= 500 %}danger{% elif row.status_code >= 400 %}warn{% else %}ok{% endif %}">{{ row.status_code }}</span></td>
+        <td>{{ row.billable_units }}</td>
+        <td>{{ row.error_code or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

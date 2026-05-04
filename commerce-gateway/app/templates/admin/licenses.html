@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% set title = "Licenses" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Licenses</h2>
+    <span class="muted">Latest 200 records</span>
+  </div>
+  <table>
+    <thead><tr><th>Created</th><th>ID</th><th>User</th><th>Prefix</th><th>Status</th><th>Max Devices</th><th>Revoked</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.created_at }}</td>
+        <td><code>{{ row.id }}</code></td>
+        <td><code>{{ row.user_id }}</code></td>
+        <td><code>{{ row.license_prefix }}</code></td>
+        <td><span class="pill {% if row.status == 'active' %}ok{% elif row.status == 'revoked' %}danger{% else %}warn{% endif %}">{{ row.status }}</span></td>
+        <td>{{ row.max_devices }}</td>
+        <td>{{ row.revoked_at or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

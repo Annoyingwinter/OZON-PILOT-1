@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+{% set title = "Users" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <h2>Registered Users</h2>
+    <span class="muted">Latest 200 accounts</span>
+  </div>
+  <table>
+    <thead><tr><th>Created</th><th>ID</th><th>Email</th><th>Phone</th><th>Status</th><th>Role</th><th>Realname</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.created_at }}</td>
+        <td><code>{{ row.id }}</code></td>
+        <td>{{ row.email }}</td>
+        <td>{{ row.phone or "" }}</td>
+        <td><span class="pill {% if row.status == 'active' %}ok{% else %}danger{% endif %}">{{ row.status }}</span></td>
+        <td><span class="pill info">{{ row.role }}</span></td>
+        <td><span class="pill {% if row.realname_status == 'verified' %}ok{% else %}warn{% endif %}">{{ row.realname_status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

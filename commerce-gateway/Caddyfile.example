@@ -1,0 +1,31 @@
+# Tested on Caddy v2.7+
+(commerce_proxy) {
+    reverse_proxy 127.0.0.1:8000 {
+        # Overwrite client-supplied proxy headers with the IP seen by Caddy.
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up -X-Forwarded-Host
+    }
+}
+
+api.example.com {
+    encode zstd gzip
+    # Local TLS test: uncomment next line for a self-signed cert.
+    # tls internal
+
+    route /admin* {
+        import commerce_proxy
+    }
+
+    route /v1* {
+        import commerce_proxy
+    }
+
+    route /healthz {
+        respond "ok" 200
+    }
+
+    route /health {
+        import commerce_proxy
+    }
+}
