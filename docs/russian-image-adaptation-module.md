@@ -1,6 +1,6 @@
 # Russian image adaptation module
 
-This module generates or edits product photos for Russian/Ozon marketplace context through the local CodexManager OpenAI-compatible API.
+This module generates or edits product photos for Russian/Ozon marketplace context through the local sub2api OpenAI-compatible account pool.
 
 ## Files
 
@@ -13,18 +13,18 @@ This module generates or edits product photos for Russian/Ozon marketplace conte
 
 ## Required environment
 
-CodexManager must be running locally:
+sub2api must be running locally:
 
 ```powershell
-$env:CODEXMANAGER_BASE_URL = "http://127.0.0.1:48760"
-$env:CODEXMANAGER_API_KEY = "<local codexmanager api key>"
+$env:SUB2API_BASE_URL = "http://127.0.0.1:18080"
+$env:SUB2API_API_KEY = "<local sub2api user api key>"
 ```
 
 Optional settings:
 
 ```powershell
-$env:RUSSIAN_IMAGE_RESPONSES_MODEL = "gpt-5.4-mini"
-$env:RUSSIAN_IMAGE_MODEL = "gpt-image-1.5"
+$env:RUSSIAN_IMAGE_RESPONSES_MODEL = "gpt-5.2"
+$env:RUSSIAN_IMAGE_MODEL = "gpt-image-2"
 $env:RUSSIAN_IMAGE_SIZE = "1024x1024"
 $env:RUSSIAN_IMAGE_QUALITY = "medium"
 $env:RUSSIAN_IMAGE_OUTPUT_FORMAT = "jpeg"
@@ -41,7 +41,7 @@ $env:OZON_IMAGE_PUBLIC_BASE_URL = "http://47.76.248.181/ozon-images/"
 $env:OZON_IMAGE_UPLOAD_TOKEN = "<same token configured on server>"
 ```
 
-If `CODEXMANAGER_API_KEY` is not available, the module falls back to `OPENAI_API_KEY`. If `CODEXMANAGER_BASE_URL` is not set, it defaults to `http://127.0.0.1:48760`.
+If `SUB2API_BASE_URL` is not set, it defaults to `http://127.0.0.1:18080`. Direct legacy image gateway environment variables are intentionally not used by the desktop app; route accounts through sub2api instead.
 
 ## Basic usage
 

@@ -14,6 +14,10 @@ commerce-gateway/.venv/
 commerce-gateway/.pytest_cache/
 commerce-gateway/.ruff_cache/
 commerce-gateway/*.egg-info/
+electron-shell/node_modules/
+electron-shell/electron-preview*.jpg
+electron-shell/electron-window-*.jpg
+electron-shell/electron-window-shot.png
 *.pyc
 __pycache__/
 .env

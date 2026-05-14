@@ -28,10 +28,18 @@ namespace LitchiOzonRecovery
         private static readonly Color PilotGreen = Color.FromArgb(255, 106, 0);
         private static readonly Color PilotGreenDark = Color.FromArgb(184, 70, 0);
         private static readonly Color PilotGreenSoft = Color.FromArgb(255, 239, 224);
+        private static readonly Color SignalBlue = Color.FromArgb(43, 93, 181);
+        private static readonly Color SignalBlueSoft = Color.FromArgb(232, 240, 255);
+        private static readonly Color SuccessGreen = Color.FromArgb(26, 123, 84);
+        private static readonly Color SuccessGreenSoft = Color.FromArgb(229, 247, 239);
+        private static readonly Color FloatingPanelBack = Color.FromArgb(255, 255, 252);
+        private static readonly Color FloatingPanelLine = Color.FromArgb(222, 226, 219);
+        private static readonly Color FloatingShadow = Color.FromArgb(34, 34, 45, 58);
         private static readonly Color ZincPanel = Color.FromArgb(244, 238, 231);
         private static readonly Color WarningAmber = Color.FromArgb(184, 89, 0);
         private static readonly Color Ink = Color.FromArgb(47, 38, 32);
         private static readonly Color Ink2 = Color.FromArgb(69, 55, 46);
+
 
         private sealed class FeeRuleDisplayRow
         {
@@ -151,6 +159,27 @@ namespace LitchiOzonRecovery
             }
         }
 
+        private sealed class LoginProbeResult
+        {
+            public string Href { get; set; }
+            public bool On1688Domain { get; set; }
+            public bool OnRelatedLoginDomain { get; set; }
+            public bool OnLoginPage { get; set; }
+            public bool PageShowsAccount { get; set; }
+            public bool PageShowsLogin { get; set; }
+            public bool CookieShowsAccount { get; set; }
+
+            public bool IsRelatedPage
+            {
+                get { return On1688Domain || OnRelatedLoginDomain; }
+            }
+
+            public bool IsVerified
+            {
+                get { return IsRelatedPage && (CookieShowsAccount || (PageShowsAccount && !PageShowsLogin)); }
+            }
+        }
+
         private readonly AppPaths _paths;
         private readonly ProductAutomationService _automationService;
         private readonly OzonFulfillmentLabelService _fulfillmentLabelService;
@@ -171,6 +200,14 @@ namespace LitchiOzonRecovery
         private ComboBox _languageComboBox;
         private TextBox _autoLoopCountBox;
         private PropertyGrid _configGrid;
+        private TextBox _configMinPriceBox;
+        private TextBox _configMaxPriceBox;
+        private TextBox _configTargetProfitBox;
+        private TextBox _configPlatformCommissionBox;
+        private TextBox _configPromotionExpenseBox;
+        private TextBox _configDeliveryFeeBox;
+        private TextBox _configCatchNumBox;
+        private CheckBox _configFboCheckBox;
         private TreeView _categoryTree;
         private DataGridView _feeGrid;
         private TextBox _assetSearchBox;
@@ -181,8 +218,19 @@ namespace LitchiOzonRecovery
         private Label _setupCompletedLabel;
         private Label _setupActionLabel;
         private TableLayoutPanel _setupBodyLayout;
+        private TableLayoutPanel _setupLayout;
+        private TableLayoutPanel _contentLayout;
         private Panel _setupPanel;
+        private SplitContainer _setupSplitContainer;
         private Panel _setupBrowserHost;
+        private bool _setupPanelCollapsed;
+        private int _setupDrawerWidth;
+        private Label _setupCollapsedLabel;
+        private Button _setupCollapseButton;
+        private Button _setupExpandButton;
+        private Button _setupCollapsedOpen1688Button;
+        private Button _setupCollapsedCheck1688Button;
+        private Button _setupIntroGoOperationButton;
         private Panel _operationBrowserHost;
         private TabPage _setupTab;
         private TabPage _operationTab;
@@ -225,6 +273,7 @@ namespace LitchiOzonRecovery
         private RoundedPanel _operationCommandPanel;
         private RoundedPanel _operationSettingsPanel;
         private RoundedPanel _operationResultsPanel;
+        private TableLayoutPanel _operationTopLayout;
         private Button _fullAutoButton;
         private Button _runSourcingButton;
         private Button _uploadSelectedButton;
@@ -246,14 +295,17 @@ namespace LitchiOzonRecovery
             _automationService = new ProductAutomationService();
             _fulfillmentLabelService = new OzonFulfillmentLabelService();
             _random = new Random();
+            _setupPanelCollapsed = false;
+            _setupDrawerWidth = 390;
             LoadUiLanguagePreference();
 
             Text = "OZON-PILOT";
             AutoScaleMode = AutoScaleMode.None;
-            Width = 1280;
-            Height = 900;
+            MinimumSize = new Size(960, 760);
+            Rectangle workArea = Screen.PrimaryScreen == null ? new Rectangle(0, 0, 1280, 900) : Screen.PrimaryScreen.WorkingArea;
+            Width = Math.Min(1280, Math.Max(MinimumSize.Width, workArea.Width - 40));
+            Height = Math.Min(900, Math.Max(MinimumSize.Height, workArea.Height - 60));
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1120, 800);
             Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             BackColor = ShellBack;
             ApplyWindowIcon();
@@ -326,9 +378,20 @@ namespace LitchiOzonRecovery
             header.Dock = DockStyle.Fill;
             navigation.Dock = DockStyle.Fill;
             _statusStrip.Dock = DockStyle.Fill;
+            _contentLayout = new TableLayoutPanel();
+            _contentLayout.Dock = DockStyle.Fill;
+            _contentLayout.ColumnCount = 1;
+            _contentLayout.RowCount = 1;
+            _contentLayout.Margin = new Padding(0);
+            _contentLayout.Padding = new Padding(0);
+            _contentLayout.BackColor = ShellBack;
+            _contentLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            _contentLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            _contentLayout.Controls.Add(_mainTabs, 0, 0);
+
             shell.Controls.Add(header, 0, 0);
             shell.Controls.Add(navigation, 0, 1);
-            shell.Controls.Add(_mainTabs, 0, 2);
+            shell.Controls.Add(_contentLayout, 0, 2);
             shell.Controls.Add(_statusStrip, 0, 3);
             Controls.Add(shell);
             SyncNavigationState();
@@ -457,6 +520,7 @@ namespace LitchiOzonRecovery
                 }
             }
 
+            ApplySetupPanelChrome();
             ApplyNavButtonState(_navSetupButton, _mainTabs != null && _mainTabs.SelectedTab == _setupTab);
             ApplyNavButtonState(_navOperationButton, _mainTabs != null && _mainTabs.SelectedTab == _operationTab);
             ApplyNavButtonState(_navOverviewButton, _mainTabs != null && _mainTabs.SelectedTab == _overviewTab);
@@ -678,14 +742,14 @@ namespace LitchiOzonRecovery
 
             TableLayoutPanel statusGrid = new TableLayoutPanel();
             statusGrid.Dock = DockStyle.Top;
-            statusGrid.Height = 106;
+            statusGrid.Height = 198;
             statusGrid.Margin = new Padding(0, 0, 0, 10);
-            statusGrid.ColumnCount = 4;
-            statusGrid.RowCount = 1;
-            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            statusGrid.ColumnCount = 2;
+            statusGrid.RowCount = 2;
+            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            statusGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            statusGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            statusGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
 
             RoundedPanel setupCard = CreateOverviewStatusCard("账号", out _overviewSetupLabel);
             RoundedPanel categoryCard = CreateOverviewStatusCard("类目", out _overviewCategoryLabel);
@@ -694,8 +758,8 @@ namespace LitchiOzonRecovery
             labelCard.Margin = new Padding(0);
             statusGrid.Controls.Add(setupCard, 0, 0);
             statusGrid.Controls.Add(categoryCard, 1, 0);
-            statusGrid.Controls.Add(resultCard, 2, 0);
-            statusGrid.Controls.Add(labelCard, 3, 0);
+            statusGrid.Controls.Add(resultCard, 0, 1);
+            statusGrid.Controls.Add(labelCard, 1, 1);
 
             RoundedPanel detail = CreateSurfacePanel(24, new Padding(20, 48, 20, 16));
             detail.Dock = DockStyle.Fill;
@@ -724,7 +788,7 @@ namespace LitchiOzonRecovery
         {
             RoundedPanel card = CreateSurfacePanel(20, new Padding(18));
             card.Dock = DockStyle.Fill;
-            card.Margin = new Padding(0, 0, 12, 0);
+            card.Margin = new Padding(0, 0, 12, 10);
             card.DrawShadow = false;
             card.FillColor = Color.FromArgb(255, 252, 248);
             card.BorderColor = Color.FromArgb(236, 224, 214);
@@ -738,15 +802,21 @@ namespace LitchiOzonRecovery
             titleLabel.ForeColor = TextMuted;
             titleLabel.Font = new Font("Microsoft YaHei UI", 8.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
 
-            valueLabel = new Label();
-            valueLabel.Left = 18;
-            valueLabel.Top = 40;
-            valueLabel.Width = 220;
-            valueLabel.Height = 50;
-            valueLabel.ForeColor = TextStrong;
-            valueLabel.Font = new Font("Microsoft YaHei UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            Label value = new Label();
+            value.Left = 18;
+            value.Top = 40;
+            value.Width = Math.Max(120, card.ClientSize.Width - 36);
+            value.Height = 50;
+            value.ForeColor = TextStrong;
+            value.Font = new Font("Microsoft YaHei UI", 10.5F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            valueLabel = value;
 
-            card.Controls.Add(valueLabel);
+            card.Resize += delegate
+            {
+                titleLabel.Width = Math.Max(120, card.ClientSize.Width - 36);
+                value.Width = Math.Max(120, card.ClientSize.Width - 36);
+            };
+            card.Controls.Add(value);
             card.Controls.Add(titleLabel);
             return card;
         }
@@ -808,27 +878,172 @@ namespace LitchiOzonRecovery
             TabPage tab = CreateTabPage("配置");
 
             FlowLayoutPanel actions = CreateActionBar();
-            actions.Controls.Add(CreateButton("重新加载配置", delegate { LoadConfig(); UpdateOverview(); }, true));
+            actions.Controls.Add(CreateButton("重新加载配置", delegate { LoadConfig(); UpdateConfigFormFromSnapshot(); UpdateOverview(); }, true));
             actions.Controls.Add(CreateButton("保存配置", SaveConfig, false));
 
             _configGrid = new PropertyGrid();
-            _configGrid.Dock = DockStyle.Fill;
-            _configGrid.HelpVisible = true;
+            _configGrid.Visible = false;
             _configGrid.ToolbarVisible = false;
-            _configGrid.PropertySort = PropertySort.Categorized;
-            _configGrid.BackColor = Color.FromArgb(250, 251, 250);
-            _configGrid.ViewBackColor = Color.FromArgb(250, 251, 250);
 
             Panel body = new Panel();
             body.Dock = DockStyle.Fill;
-            body.Padding = new Padding(12);
-            body.Controls.Add(WrapWithGroup("筛选与定价配置", _configGrid));
+            body.Padding = new Padding(18);
+            body.BackColor = ShellBack;
 
+            RoundedPanel card = CreateSurfacePanel(24, new Padding(24));
+            card.Dock = DockStyle.Top;
+            card.Height = 430;
+            card.FillColor = Color.FromArgb(255, 253, 249);
+            card.BorderColor = Color.FromArgb(235, 219, 205);
+
+            Label title = new Label();
+            title.Text = "常用设置";
+            title.Left = 24;
+            title.Top = 22;
+            title.Width = 220;
+            title.Height = 32;
+            title.ForeColor = TextStrong;
+            title.Font = new Font("Microsoft YaHei UI", 16F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            Label desc = new Label();
+            desc.Text = "这里只放每天会改的筛选和定价参数；高级内部项先保持默认，避免新手误改。";
+            desc.Left = 24;
+            desc.Top = 58;
+            desc.Width = 760;
+            desc.Height = 24;
+            desc.ForeColor = TextMuted;
+            desc.Font = new Font("Microsoft YaHei UI", 9.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
+
+            TableLayoutPanel grid = new TableLayoutPanel();
+            grid.Left = 24;
+            grid.Top = 104;
+            grid.Width = 820;
+            grid.Height = 230;
+            grid.ColumnCount = 4;
+            grid.RowCount = 2;
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+            _configMinPriceBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configMaxPriceBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configTargetProfitBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configPlatformCommissionBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configPromotionExpenseBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configDeliveryFeeBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configCatchNumBox = CreateTextBox(0, 0, 120, string.Empty);
+            _configFboCheckBox = new CheckBox();
+            _configFboCheckBox.Text = "按 FBO 计算";
+            _configFboCheckBox.Dock = DockStyle.Top;
+            _configFboCheckBox.Height = 34;
+            _configFboCheckBox.ForeColor = TextStrong;
+            _configFboCheckBox.Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            grid.Controls.Add(CreateSettingField("最低售价", "低于这个价不选", _configMinPriceBox), 0, 0);
+            grid.Controls.Add(CreateSettingField("最高售价", "高于这个价不选", _configMaxPriceBox), 1, 0);
+            grid.Controls.Add(CreateSettingField("目标利润率", "定价公式里的目标利润%", _configTargetProfitBox), 2, 0);
+            grid.Controls.Add(CreateSettingField("平台佣金", "Ozon 抽佣%", _configPlatformCommissionBox), 3, 0);
+            grid.Controls.Add(CreateSettingField("推广费用", "广告/推广占比%", _configPromotionExpenseBox), 0, 1);
+            grid.Controls.Add(CreateSettingField("默认运费", "无规则时使用", _configDeliveryFeeBox), 1, 1);
+            grid.Controls.Add(CreateSettingField("抓取数量", "每轮最多抓多少", _configCatchNumBox), 2, 1);
+            grid.Controls.Add(CreateSettingCheckField("履约方式", "影响运费和利润估算", _configFboCheckBox), 3, 1);
+
+            Label formula = new Label();
+            formula.Text = "定价规则：售价 = (货物成本 + 国内物流成本 + 国际物流成本) / (1 - 平台佣金 - 推广费用 - 目标利润)。";
+            formula.Left = 24;
+            formula.Top = 354;
+            formula.Width = 940;
+            formula.Height = 34;
+            formula.Padding = new Padding(14, 8, 14, 6);
+            formula.ForeColor = PilotGreenDark;
+            formula.BackColor = Color.FromArgb(236, 248, 240);
+            formula.Font = new Font("Microsoft YaHei UI", 9.4F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            formula.Resize += delegate { SetRoundedRegion(formula, 16); };
+
+            card.Resize += delegate
+            {
+                grid.Width = Math.Max(620, card.ClientSize.Width - 48);
+                desc.Width = Math.Max(300, card.ClientSize.Width - 48);
+                formula.Width = Math.Max(300, card.ClientSize.Width - 48);
+            };
+
+            card.Controls.Add(formula);
+            card.Controls.Add(grid);
+            card.Controls.Add(desc);
+            card.Controls.Add(title);
+            body.Controls.Add(_configGrid);
+            body.Controls.Add(card);
             tab.Controls.Add(body);
             tab.Controls.Add(actions);
             return tab;
         }
 
+        private Control CreateSettingField(string title, string hint, TextBox input)
+        {
+            RoundedPanel field = CreateSurfacePanel(16, new Padding(14, 12, 14, 12));
+            field.Dock = DockStyle.Fill;
+            field.Margin = new Padding(0, 0, 12, 12);
+            field.DrawShadow = false;
+            field.FillColor = Color.FromArgb(255, 252, 248);
+            field.BorderColor = Color.FromArgb(236, 224, 214);
+
+            Label titleLabel = new Label();
+            titleLabel.Text = title;
+            titleLabel.Dock = DockStyle.Top;
+            titleLabel.Height = 24;
+            titleLabel.ForeColor = TextStrong;
+            titleLabel.Font = new Font("Microsoft YaHei UI", 9.4F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            Label hintLabel = new Label();
+            hintLabel.Text = hint;
+            hintLabel.Dock = DockStyle.Top;
+            hintLabel.Height = 22;
+            hintLabel.ForeColor = TextMuted;
+            hintLabel.Font = new Font("Microsoft YaHei UI", 8.4F, FontStyle.Regular, GraphicsUnit.Point, 0);
+
+            input.Dock = DockStyle.Top;
+            input.Height = 34;
+            input.BorderStyle = BorderStyle.FixedSingle;
+            input.BackColor = Color.White;
+            input.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+
+            field.Controls.Add(input);
+            field.Controls.Add(hintLabel);
+            field.Controls.Add(titleLabel);
+            return field;
+        }
+
+        private Control CreateSettingCheckField(string title, string hint, CheckBox input)
+        {
+            RoundedPanel field = CreateSurfacePanel(16, new Padding(14, 12, 14, 12));
+            field.Dock = DockStyle.Fill;
+            field.Margin = new Padding(0, 0, 12, 12);
+            field.DrawShadow = false;
+            field.FillColor = Color.FromArgb(255, 252, 248);
+            field.BorderColor = Color.FromArgb(236, 224, 214);
+
+            Label titleLabel = new Label();
+            titleLabel.Text = title;
+            titleLabel.Dock = DockStyle.Top;
+            titleLabel.Height = 24;
+            titleLabel.ForeColor = TextStrong;
+            titleLabel.Font = new Font("Microsoft YaHei UI", 9.4F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            Label hintLabel = new Label();
+            hintLabel.Text = hint;
+            hintLabel.Dock = DockStyle.Top;
+            hintLabel.Height = 22;
+            hintLabel.ForeColor = TextMuted;
+            hintLabel.Font = new Font("Microsoft YaHei UI", 8.4F, FontStyle.Regular, GraphicsUnit.Point, 0);
+
+            field.Controls.Add(input);
+            field.Controls.Add(hintLabel);
+            field.Controls.Add(titleLabel);
+            return field;
+        }
         private TabPage BuildAssetsTab()
         {
             TabPage tab = CreateTabPage("资产");
@@ -866,7 +1081,25 @@ namespace LitchiOzonRecovery
             _feeGrid.MultiSelect = false;
             _feeGrid.CellDoubleClick += UseSelectedFeeRule;
 
-            split.Panel1.Controls.Add(WrapWithGroup("Ozon 类目树", _categoryTree));
+            Label categoryGuide = new Label();
+            categoryGuide.Text = "怎么用：在左侧展开类目，双击最底层类目；系统会自动带到“运营”页，结果在总览和运营页都能看到。";
+            categoryGuide.Dock = DockStyle.Top;
+            categoryGuide.Height = 56;
+            categoryGuide.Padding = new Padding(14, 10, 14, 8);
+            categoryGuide.BackColor = SignalBlueSoft;
+            categoryGuide.ForeColor = SignalBlue;
+            categoryGuide.Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            categoryGuide.Resize += delegate { SetRoundedRegion(categoryGuide, 16); };
+
+            Panel categoryPanel = new Panel();
+            categoryPanel.Dock = DockStyle.Fill;
+            categoryPanel.Padding = new Padding(0, 0, 0, 0);
+            Control categoryGroup = WrapWithGroup("Ozon 类目树", _categoryTree);
+            categoryGroup.Dock = DockStyle.Fill;
+            categoryPanel.Controls.Add(categoryGroup);
+            categoryPanel.Controls.Add(categoryGuide);
+
+            split.Panel1.Controls.Add(categoryPanel);
             split.Panel2.Controls.Add(WrapWithGroup("运费规则表", _feeGrid));
 
             tab.Controls.Add(split);
@@ -918,6 +1151,7 @@ namespace LitchiOzonRecovery
             _languageComboBox.SelectedIndex = LanguageIndexFromCode(_uiLanguage);
 
             Button apply = CreateButton("应用语言", ApplyLanguageSelection, true);
+            apply.Width = 128;
             apply.Location = new Point(304, 140);
 
             Label note = new Label();
@@ -1446,7 +1680,7 @@ namespace LitchiOzonRecovery
             browserPanel.Padding = new Padding(12, 44, 12, 38);
 
             Label browserTitle = new Label();
-            browserTitle.Text = "1688 工作浏览器";
+            browserTitle.Text = "1688 采集工作区";
             browserTitle.Left = 18;
             browserTitle.Top = 13;
             browserTitle.AutoSize = true;
@@ -2172,13 +2406,24 @@ namespace LitchiOzonRecovery
             page.Padding = new Padding(14);
             page.BackColor = ShellBack;
 
+            _setupLayout = new TableLayoutPanel();
+            _setupLayout.Dock = DockStyle.Fill;
+            _setupLayout.ColumnCount = 2;
+            _setupLayout.RowCount = 1;
+            _setupLayout.Margin = new Padding(0);
+            _setupLayout.Padding = new Padding(0);
+            _setupLayout.BackColor = Color.Transparent;
+            _setupLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            _setupLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+            _setupLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
             RoundedPanel browserPanel = CreateSurfacePanel(24, new Padding(12, 38, 12, 28));
             browserPanel.Dock = DockStyle.Fill;
             browserPanel.FillColor = Color.FromArgb(255, 252, 248);
             browserPanel.BorderColor = Color.FromArgb(231, 219, 208);
 
             Label browserTitle = new Label();
-            browserTitle.Text = "1688 工作区";
+            browserTitle.Text = "右侧浏览器";
             browserTitle.Left = 18;
             browserTitle.Top = 11;
             browserTitle.AutoSize = true;
@@ -2191,7 +2436,7 @@ namespace LitchiOzonRecovery
             _browserStatusLabel.ForeColor = TextMuted;
             _browserStatusLabel.BackColor = Color.FromArgb(255, 252, 248);
             _browserStatusLabel.Padding = new Padding(14, 4, 12, 2);
-            _browserStatusLabel.Text = "浏览器尚未初始化。点浮窗里的“启动浏览器”。";
+            _browserStatusLabel.Text = "浏览器尚未初始化。先点左侧“启动浏览器”，再按步骤操作。";
 
             _setupBrowserHost = new Panel();
             _setupBrowserHost.Dock = DockStyle.Fill;
@@ -2201,55 +2446,71 @@ namespace LitchiOzonRecovery
             _browser.Dock = DockStyle.Fill;
             _browser.BackColor = Color.White;
             _setupBrowserHost.Controls.Add(_browser);
+            _setupBrowserHost.Resize += delegate { UpdateSetupStatus(); };
             browserPanel.Controls.Add(_setupBrowserHost);
             browserPanel.Controls.Add(browserTitle);
             browserPanel.Controls.Add(_browserStatusLabel);
 
             RoundedPanel setupPanel = CreateSurfacePanel(24, new Padding(18));
             _setupPanel = setupPanel;
-            setupPanel.Dock = DockStyle.None;
-            setupPanel.Width = 1060;
-            setupPanel.Height = 202;
+            setupPanel.Dock = DockStyle.Fill;
+            setupPanel.Width = 92;
+            setupPanel.Height = 342;
             setupPanel.Left = 22;
             setupPanel.Top = 22;
-            setupPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-            setupPanel.FillColor = Color.FromArgb(255, 253, 249);
-            setupPanel.BorderColor = Color.FromArgb(235, 219, 205);
-            setupPanel.ShadowColor = Color.FromArgb(22, 126, 78, 40);
+            setupPanel.Anchor = AnchorStyles.None;
+            setupPanel.FillColor = FloatingPanelBack;
+            setupPanel.BorderColor = FloatingPanelLine;
+            setupPanel.ShadowColor = FloatingShadow;
 
-            Panel normalPanel = new Panel();
+            FlowLayoutPanel normalPanel = new FlowLayoutPanel();
             normalPanel.Dock = DockStyle.Fill;
             normalPanel.BackColor = Color.Transparent;
             normalPanel.Tag = "normal";
+            normalPanel.FlowDirection = FlowDirection.TopDown;
+            normalPanel.WrapContents = false;
+            normalPanel.AutoScroll = true;
+            normalPanel.Padding = new Padding(0);
 
-            Label title = CreateTextBlock("账号准备", 15F, FontStyle.Bold, TextStrong, 30);
-            Label desc = CreateTextBlock("通过后自动收起，不挡浏览器。", 8.6F, FontStyle.Regular, TextMuted, 20);
-            _setupActionLabel = CreateTextBlock("下一步：打开1688后检测", 9.2F, FontStyle.Bold, PilotGreenDark, 34);
-            _setupActionLabel.BackColor = Color.FromArgb(255, 237, 222);
-            _setupActionLabel.Padding = new Padding(14, 12, 12, 8);
+            _setupCollapseButton = CreateButton("收起面板", delegate { CollapseSetupPanel(); }, false);
+            _setupCollapseButton.Width = 108;
+            _setupCollapseButton.Height = 30;
+            _setupCollapseButton.Margin = new Padding(0, 0, 0, 6);
+
+            Label title = CreateTextBlock("新手准备", 13.2F, FontStyle.Bold, TextStrong, 26);
+            Label desc = CreateTextBlock("登录 1688 -> 填 Ozon API -> 去运营。验证码手动。", 8.2F, FontStyle.Regular, TextMuted, 20);
+            _setupActionLabel = CreateTextBlock("当前动作：点“启动”。", 8.8F, FontStyle.Bold, SignalBlue, 30);
+            _setupActionLabel.BackColor = SignalBlueSoft;
+            _setupActionLabel.Padding = new Padding(12, 6, 10, 5);
             _setupActionLabel.Resize += delegate { SetRoundedRegion(_setupActionLabel, 14); };
 
             TableLayoutPanel statusGrid = CreateCompactGrid(2, 1);
-            statusGrid.Height = 28;
-            statusGrid.RowStyles[0].Height = 28;
-            _setup1688StatusLabel = CreateSetupStatusLabel("1688：未检测", 0, 0, PilotGreen);
+            statusGrid.Height = 26;
+            statusGrid.RowStyles[0].Height = 26;
+            _setup1688StatusLabel = CreateSetupStatusLabel("1688登录：未检测", 0, 0, SignalBlue);
             _setup1688StatusLabel.Dock = DockStyle.Fill;
             _setup1688StatusLabel.Margin = new Padding(0, 0, 6, 0);
-            _setupOzonStatusLabel = CreateSetupStatusLabel("Ozon：未检测", 0, 0, PilotGreenDark);
+            _setupOzonStatusLabel = CreateSetupStatusLabel("Ozon API：未填写", 0, 0, WarningAmber);
             _setupOzonStatusLabel.Dock = DockStyle.Fill;
             _setupOzonStatusLabel.Margin = new Padding(6, 0, 0, 0);
             statusGrid.Controls.Add(_setup1688StatusLabel, 0, 0);
             statusGrid.Controls.Add(_setupOzonStatusLabel, 1, 0);
 
             TableLayoutPanel browserButtons = CreateCompactGrid(3, 1);
-            browserButtons.Height = 42;
+            browserButtons.Height = 40;
+            browserButtons.RowStyles[0].Height = 40;
             Button initButton = CreateButton("启动浏览器", InitializeBrowser, true);
             Button open1688Button = CreateButton("打开1688", Open1688LoginPage, false);
             Button check1688Button = CreateButton("检测登录", Check1688Login, false);
+            initButton.Dock = DockStyle.Fill;
+            open1688Button.Dock = DockStyle.Fill;
+            check1688Button.Dock = DockStyle.Fill;
+            initButton.Margin = new Padding(0, 4, 6, 6);
+            open1688Button.Margin = new Padding(0, 4, 6, 6);
+            check1688Button.Margin = new Padding(0, 4, 0, 6);
             browserButtons.Controls.Add(initButton, 0, 0);
             browserButtons.Controls.Add(open1688Button, 1, 0);
             browserButtons.Controls.Add(check1688Button, 2, 0);
-            browserButtons.Top = 30;
 
             _ozonClientIdBox = CreateTextBox(0, 0, 120, DefaultOzonClientId);
             _ozonClientIdBox.Leave += delegate { SavePersistentUiState(); UpdateSetupStatus(); };
@@ -2257,67 +2518,156 @@ namespace LitchiOzonRecovery
             _ozonApiKeyBox.PasswordChar = '*';
             _ozonApiKeyBox.Leave += delegate { SavePersistentUiState(); UpdateSetupStatus(); };
 
-            TableLayoutPanel accountGrid = CreateCompactGrid(2, 1);
-            accountGrid.Height = 58;
-            accountGrid.Controls.Add(CreateField("Client-Id", _ozonClientIdBox), 0, 0);
-            accountGrid.Controls.Add(CreateField("Api-Key", _ozonApiKeyBox), 1, 0);
-            accountGrid.Top = 28;
+            TableLayoutPanel accountGrid = CreateCompactGrid(2, 2);
+            accountGrid.Height = 122;
+            accountGrid.RowStyles[0].Height = 70;
+            accountGrid.RowStyles[1].Height = 52;
+            accountGrid.Controls.Add(CreateSetupCredentialField("Ozon Client-Id", _ozonClientIdBox), 0, 0);
+            accountGrid.Controls.Add(CreateSetupCredentialField("Ozon Api-Key", _ozonApiKeyBox), 1, 0);
 
             TableLayoutPanel ozonButtons = CreateCompactGrid(3, 1);
-            ozonButtons.Height = 42;
-            Button openApi = CreateButton("获取API", OpenOzonApiPage, false);
-            Button checkApi = CreateButton("验证API", CheckOzonCredentials, true);
-            Button saveOnly = CreateButton("保存API", delegate { SavePersistentUiState(); _ozonCredentialsVerified = false; UpdateSetupStatus(); UpdateOperationReadiness(); SetStatus("账号已保存，但还没有验证 API 是否可用。"); }, false);
+            ozonButtons.Dock = DockStyle.Fill;
+            ozonButtons.Height = 46;
+            ozonButtons.RowStyles[0].Height = 46;
+            Button openApi = CreateButton("打开API后台", OpenOzonApiPage, false);
+            Button checkApi = CreateButton("验证并保存", CheckOzonCredentials, true);
+            Button saveOnly = CreateButton("只保存", delegate { SavePersistentUiState(); _ozonCredentialsVerified = false; UpdateSetupStatus(); UpdateOperationReadiness(); SetStatus("账号已保存，但还没有验证 API 是否可用。"); }, false);
+            openApi.Dock = DockStyle.Fill;
+            checkApi.Dock = DockStyle.Fill;
+            saveOnly.Dock = DockStyle.Fill;
+            openApi.Margin = new Padding(0, 6, 6, 8);
+            checkApi.Margin = new Padding(0, 6, 6, 8);
+            saveOnly.Margin = new Padding(0, 6, 0, 8);
             ozonButtons.Controls.Add(openApi, 0, 0);
             ozonButtons.Controls.Add(checkApi, 1, 0);
             ozonButtons.Controls.Add(saveOnly, 2, 0);
-            ozonButtons.Top = 88;
+
+            TableLayoutPanel introButtons = CreateCompactGrid(2, 2);
+            introButtons.Height = 88;
+            introButtons.RowStyles[0].Height = 44;
+            introButtons.RowStyles[1].Height = 44;
+            Button introInitButton = CreateButton("启动浏览器", InitializeBrowser, true);
+            Button introOpen1688Button = CreateButton("打开1688", Open1688LoginPage, false);
+            Button introCheck1688Button = CreateButton("检测登录", Check1688Login, false);
+            _setupIntroGoOperationButton = CreateButton("去运营", GoOperationTab, false);
+            introInitButton.Dock = DockStyle.Fill;
+            introOpen1688Button.Dock = DockStyle.Fill;
+            introCheck1688Button.Dock = DockStyle.Fill;
+            _setupIntroGoOperationButton.Dock = DockStyle.Fill;
+            introInitButton.Margin = new Padding(0, 4, 6, 4);
+            introOpen1688Button.Margin = new Padding(6, 4, 0, 4);
+            introCheck1688Button.Margin = new Padding(0, 4, 6, 4);
+            _setupIntroGoOperationButton.Margin = new Padding(6, 4, 0, 4);
+            introButtons.Controls.Add(introInitButton, 0, 0);
+            introButtons.Controls.Add(introOpen1688Button, 1, 0);
+            introButtons.Controls.Add(introCheck1688Button, 0, 1);
+            introButtons.Controls.Add(_setupIntroGoOperationButton, 1, 1);
 
             RoundedPanel intro = CreateSurfacePanel(16, new Padding(16, 14, 16, 12));
             intro.DrawShadow = false;
-            intro.FillColor = Color.FromArgb(255, 251, 246);
+            intro.FillColor = Color.FromArgb(250, 252, 255);
+            intro.BorderColor = Color.FromArgb(223, 230, 240);
             intro.Dock = DockStyle.None;
+            intro.Margin = new Padding(0, 0, 0, 10);
+            intro.Height = 378;
+            accountGrid.Controls.Add(ozonButtons, 0, 1);
+            accountGrid.SetColumnSpan(ozonButtons, 2);
+            intro.Controls.Add(accountGrid);
+            intro.Controls.Add(CreateTextBlock("填写后点“验证并保存”；通过后本机默认保留。", 8.2F, FontStyle.Regular, TextMuted, 22));
+            intro.Controls.Add(CreateTextBlock("2  填写 Ozon API", 10.2F, FontStyle.Bold, TextStrong, 26));
             intro.Controls.Add(statusGrid);
+            intro.Controls.Add(introButtons);
             intro.Controls.Add(_setupActionLabel);
             intro.Controls.Add(desc);
             intro.Controls.Add(title);
 
-            RoundedPanel browserStep = CreateSurfacePanel(16, new Padding(16, 14, 16, 12));
-            browserStep.DrawShadow = false;
-            browserStep.FillColor = Color.FromArgb(255, 251, 246);
-            browserStep.Dock = DockStyle.None;
-            browserStep.Margin = new Padding(0);
-            browserStep.Controls.Add(browserButtons);
-            browserStep.Controls.Add(CreateTextBlock("1688 登录", 10F, FontStyle.Bold, TextStrong, 30));
+            Panel collapsedPanel = new Panel();
+            collapsedPanel.Dock = DockStyle.Fill;
+            collapsedPanel.BackColor = Color.Transparent;
+            collapsedPanel.Tag = "collapsed";
+            collapsedPanel.Visible = false;
+            _setupCollapsedLabel = CreateTextBlock("准备未完成", 8.8F, FontStyle.Bold, SignalBlue, 34);
+            _setupCollapsedLabel.BackColor = SignalBlueSoft;
+            _setupCollapsedLabel.Padding = new Padding(8, 6, 8, 6);
+            _setupCollapsedLabel.TextAlign = ContentAlignment.MiddleCenter;
+            _setupCollapsedLabel.Dock = DockStyle.None;
+            _setupCollapsedLabel.Margin = new Padding(0);
+            _setupCollapsedLabel.Resize += delegate { SetRoundedRegion(_setupCollapsedLabel, 14); };
+            _setupCollapsedOpen1688Button = CreateButton("登录1688", Open1688LoginPage, true);
+            _setupCollapsedOpen1688Button.Width = 98;
+            _setupCollapsedOpen1688Button.Height = 34;
+            _setupCollapsedOpen1688Button.Dock = DockStyle.None;
+            _setupCollapsedOpen1688Button.Margin = new Padding(0);
+            _setupCollapsedCheck1688Button = CreateButton("检测", Check1688Login, false);
+            _setupCollapsedCheck1688Button.Width = 98;
+            _setupCollapsedCheck1688Button.Height = 34;
+            _setupCollapsedCheck1688Button.Dock = DockStyle.None;
+            _setupCollapsedCheck1688Button.Margin = new Padding(0);
+            _setupExpandButton = CreateButton("API", delegate { ExpandSetupPanel(null, EventArgs.Empty); }, false);
+            _setupExpandButton.Width = 98;
+            _setupExpandButton.Height = 34;
+            _setupExpandButton.Dock = DockStyle.None;
+            _setupExpandButton.Margin = new Padding(0);
+            collapsedPanel.Resize += delegate
+            {
+                int panelWidth = collapsedPanel.ClientSize.Width;
+                int panelHeight = collapsedPanel.ClientSize.Height;
+                int gap = 7;
+                if (panelWidth <= 150)
+                {
+                    int sidePadding = 8;
+                    int buttonHeight = 32;
+                    int buttonWidth = Math.Max(70, panelWidth - sidePadding * 2);
+                    int y = 6;
+                    _setupCollapsedLabel.SetBounds(sidePadding, y, buttonWidth, 32);
+                    y += 32 + gap;
+                    _setupCollapsedOpen1688Button.SetBounds(sidePadding, y, buttonWidth, buttonHeight);
+                    y += buttonHeight + gap;
+                    _setupCollapsedCheck1688Button.SetBounds(sidePadding, y, buttonWidth, buttonHeight);
+                    y += buttonHeight + gap;
+                    _setupExpandButton.SetBounds(sidePadding, y, buttonWidth, buttonHeight);
+                }
+                else
+                {
+                    int buttonWidth = panelWidth < 660 ? 96 : 112;
+                    int buttonHeight = Math.Min(36, Math.Max(32, panelHeight - 2));
+                    int top = Math.Max(0, (panelHeight - buttonHeight) / 2);
+                    int right = panelWidth;
+                    _setupExpandButton.SetBounds(Math.Max(0, right - buttonWidth), top, buttonWidth, buttonHeight);
+                    right = _setupExpandButton.Left - 10;
+                    _setupCollapsedCheck1688Button.SetBounds(Math.Max(0, right - buttonWidth), top, buttonWidth, buttonHeight);
+                    right = _setupCollapsedCheck1688Button.Left - 10;
+                    _setupCollapsedOpen1688Button.SetBounds(Math.Max(0, right - buttonWidth), top, buttonWidth, buttonHeight);
+                    int labelRight = Math.Max(120, _setupCollapsedOpen1688Button.Left - 10);
+                    _setupCollapsedLabel.SetBounds(0, top, labelRight, buttonHeight);
+                }
 
-            RoundedPanel ozonStep = CreateSurfacePanel(16, new Padding(16, 14, 16, 12));
-            ozonStep.DrawShadow = false;
-            ozonStep.FillColor = Color.FromArgb(255, 251, 246);
-            ozonStep.Dock = DockStyle.None;
-            ozonStep.Margin = new Padding(0);
-            ozonStep.Controls.Add(ozonButtons);
-            ozonStep.Controls.Add(accountGrid);
-            ozonStep.Controls.Add(CreateTextBlock("Ozon API", 10F, FontStyle.Bold, TextStrong, 30));
+                _setupCollapsedLabel.SendToBack();
+                _setupCollapsedOpen1688Button.BringToFront();
+                _setupCollapsedCheck1688Button.BringToFront();
+                _setupExpandButton.BringToFront();
+            };
+            collapsedPanel.Controls.Add(_setupCollapsedLabel);
+            collapsedPanel.Controls.Add(_setupCollapsedOpen1688Button);
+            collapsedPanel.Controls.Add(_setupCollapsedCheck1688Button);
+            collapsedPanel.Controls.Add(_setupExpandButton);
+            _setupCollapsedLabel.SendToBack();
+            _setupCollapsedOpen1688Button.BringToFront();
+            _setupCollapsedCheck1688Button.BringToFront();
+            _setupExpandButton.BringToFront();
 
             normalPanel.Resize += delegate
             {
-                int width = normalPanel.ClientSize.Width;
-                int contentWidth = Math.Min(1024, Math.Max(680, width));
-                int gap = 14;
-                int introWidth = 268;
-                int browserWidth = 254;
-                int stepHeight = Math.Max(140, normalPanel.ClientSize.Height);
-                int ozonLeft = introWidth + browserWidth + gap * 2;
-                intro.SetBounds(0, 0, introWidth, stepHeight);
-                browserStep.SetBounds(introWidth + gap, 0, browserWidth, stepHeight);
-                ozonStep.SetBounds(ozonLeft, 0, Math.Max(320, contentWidth - ozonLeft), stepHeight);
+                int contentWidth = Math.Max(300, normalPanel.ClientSize.Width - 30);
+                _setupCollapseButton.Width = Math.Min(170, contentWidth);
+                intro.Width = contentWidth;
+                normalPanel.AutoScrollMinSize = new Size(contentWidth, _setupCollapseButton.Height + intro.Height + 36);
             };
-            intro.SetBounds(0, 0, 268, 166);
-            browserStep.SetBounds(282, 0, 254, 166);
-            ozonStep.SetBounds(550, 0, 474, 166);
-            normalPanel.Controls.Add(ozonStep);
-            normalPanel.Controls.Add(browserStep);
+            int initialWizardWidth = 360;
+            intro.Width = initialWizardWidth;
+            normalPanel.Controls.Add(_setupCollapseButton);
             normalPanel.Controls.Add(intro);
+            normalPanel.AutoScrollMinSize = new Size(initialWizardWidth, _setupCollapseButton.Height + intro.Height + 36);
 
             Panel readyPanel = new Panel();
             readyPanel.Dock = DockStyle.Fill;
@@ -2325,10 +2675,10 @@ namespace LitchiOzonRecovery
             readyPanel.Tag = "ready";
             readyPanel.Visible = false;
 
-            _setupCompletedLabel = CreateTextBlock("准备完成", 16F, FontStyle.Bold, PilotGreenDark, 34);
-            Label readyDesc = CreateTextBlock("账号已可用。需要改账号时再展开，平时把浏览器空间留给 1688。", 9.3F, FontStyle.Regular, TextMuted, 42);
+            _setupCompletedLabel = CreateTextBlock("准备完成", 17F, FontStyle.Bold, SuccessGreen, 36);
+            Label readyDesc = CreateTextBlock("1688 会话和 Ozon API 都可用。平时这里收起，浏览器保持最大工作面积。", 9.4F, FontStyle.Regular, TextMuted, 42);
             TableLayoutPanel readyButtons = CreateCompactGrid(3, 1);
-            readyButtons.Height = 52;
+            readyButtons.Height = 64;
             readyButtons.Controls.Add(CreateButton("去运营", GoOperationTab, true), 0, 0);
             readyButtons.Controls.Add(CreateButton("重新检测", RecheckSetup, false), 1, 0);
             readyButtons.Controls.Add(CreateButton("修改账号", ExpandSetupPanel, false), 2, 0);
@@ -2348,6 +2698,7 @@ namespace LitchiOzonRecovery
             readyPanel.Controls.Add(readyGrid);
 
             setupPanel.Controls.Add(readyPanel);
+            setupPanel.Controls.Add(collapsedPanel);
             setupPanel.Controls.Add(normalPanel);
 
             page.Resize += delegate
@@ -2357,14 +2708,30 @@ namespace LitchiOzonRecovery
                     return;
                 }
 
-                int width = Math.Min(1080, Math.Max(720, page.ClientSize.Width - 44));
-                _setupPanel.Width = width;
-                _setupPanel.Left = 22;
-                _setupPanel.Top = 22;
+                ApplySetupPanelChrome();
             };
-            page.Controls.Add(browserPanel);
-            page.Controls.Add(setupPanel);
-            setupPanel.BringToFront();
+            _setupSplitContainer = new SplitContainer();
+            _setupSplitContainer.Dock = DockStyle.Fill;
+            _setupSplitContainer.Orientation = Orientation.Vertical;
+            _setupSplitContainer.FixedPanel = FixedPanel.Panel1;
+            _setupSplitContainer.Panel1MinSize = 40;
+            _setupSplitContainer.Panel2MinSize = 40;
+            _setupSplitContainer.SplitterWidth = 8;
+            _setupSplitContainer.BackColor = ShellBack;
+            _setupSplitContainer.Panel1.BackColor = ShellBack;
+            _setupSplitContainer.Panel2.BackColor = ShellBack;
+            _setupSplitContainer.Panel1.Padding = new Padding(0);
+            _setupSplitContainer.Panel2.Padding = new Padding(8, 0, 0, 0);
+            _setupSplitContainer.SplitterMoved += delegate
+            {
+                if (!_setupPanelCollapsed && _setupSplitContainer != null)
+                {
+                    _setupDrawerWidth = Math.Max(360, _setupSplitContainer.Panel1.Width);
+                }
+            };
+            _setupSplitContainer.Panel1.Controls.Add(setupPanel);
+            _setupSplitContainer.Panel2.Controls.Add(browserPanel);
+            page.Controls.Add(_setupSplitContainer);
             tab.Controls.Add(page);
             UpdateSetupStatus();
             return tab;
@@ -2512,92 +2879,82 @@ namespace LitchiOzonRecovery
         {
             TabPage tab = CreateTabPage("运营");
 
-            Panel page = new Panel();
+            TableLayoutPanel page = new TableLayoutPanel();
             page.Dock = DockStyle.Fill;
             page.Padding = new Padding(14);
             page.BackColor = ShellBack;
+            page.ColumnCount = 1;
+            page.RowCount = 2;
+            page.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            page.RowStyles.Add(new RowStyle(SizeType.Absolute, 318));
+            page.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            _operationLayout = page;
 
-            _operationLayout = null;
-
-            RoundedPanel browserPanel = CreateSurfacePanel(24, new Padding(12, 46, 12, 36));
-            browserPanel.Dock = DockStyle.Fill;
-            browserPanel.FillColor = Color.FromArgb(255, 252, 248);
-            browserPanel.BorderColor = Color.FromArgb(231, 219, 208);
-
-            Label browserTitle = new Label();
-            browserTitle.Text = "1688 工作浏览器";
-            browserTitle.Left = 18;
-            browserTitle.Top = 14;
-            browserTitle.AutoSize = true;
-            browserTitle.ForeColor = TextStrong;
-            browserTitle.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
-
-            Label browserHint = new Label();
-            browserHint.Text = "浏览器是主工作区，控制台浮在上方。需要改登录/API 去“准备”。";
-            browserHint.Dock = DockStyle.Bottom;
-            browserHint.Height = 30;
-            browserHint.ForeColor = TextMuted;
-            browserHint.BackColor = Color.FromArgb(255, 252, 248);
-            browserHint.Padding = new Padding(14, 7, 12, 4);
-
-            _operationBrowserHost = new Panel();
-            _operationBrowserHost.Dock = DockStyle.Fill;
-            _operationBrowserHost.BackColor = Color.White;
-            browserPanel.Controls.Add(_operationBrowserHost);
-            browserPanel.Controls.Add(browserTitle);
-            browserPanel.Controls.Add(browserHint);
+            _operationTopLayout = new TableLayoutPanel();
+            _operationTopLayout.Dock = DockStyle.Fill;
+            _operationTopLayout.ColumnCount = 2;
+            _operationTopLayout.RowCount = 1;
+            _operationTopLayout.Margin = new Padding(0, 0, 0, 12);
+            _operationTopLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66));
+            _operationTopLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
+            _operationTopLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             RoundedPanel command = CreateSurfacePanel(24, new Padding(20, 18, 20, 16));
             _operationCommandPanel = command;
-            command.Dock = DockStyle.None;
-            command.Width = 560;
-            command.Height = 174;
-            command.Left = 22;
-            command.Top = 22;
-            command.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-            command.FillColor = Color.FromArgb(255, 253, 249);
-            command.BorderColor = Color.FromArgb(235, 219, 205);
-            command.ShadowColor = Color.FromArgb(26, 126, 78, 40);
+            command.Dock = DockStyle.Fill;
+            command.Margin = new Padding(0, 0, 12, 0);
+            command.FillColor = FloatingPanelBack;
+            command.BorderColor = FloatingPanelLine;
+            command.ShadowColor = FloatingShadow;
 
             Label title = new Label();
-            title.Text = "运营控制台";
+            title.Text = "今天的上架流程";
             title.Left = 22;
             title.Top = 18;
             title.Width = 220;
-            title.Height = 28;
+            title.Height = 30;
             title.ForeColor = TextStrong;
             title.Font = new Font("Microsoft YaHei UI", 15F, FontStyle.Bold, GraphicsUnit.Point, 0);
 
+            Label commandHint = new Label();
+            commandHint.Text = "先准备账号，再选品、处理图片、确认上架、下载面单。";
+            commandHint.Left = 184;
+            commandHint.Top = 24;
+            commandHint.Width = 520;
+            commandHint.Height = 22;
+            commandHint.ForeColor = TextMuted;
+            commandHint.BackColor = Color.Transparent;
+            commandHint.Font = new Font("Microsoft YaHei UI", 8.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+
             _operationReadinessLabel = new Label();
             _operationReadinessLabel.Left = 22;
-            _operationReadinessLabel.Top = 56;
-            _operationReadinessLabel.Width = 184;
+            _operationReadinessLabel.Top = 62;
+            _operationReadinessLabel.Width = 182;
             _operationReadinessLabel.Height = 76;
-            _operationReadinessLabel.BackColor = PilotGreenSoft;
-            _operationReadinessLabel.ForeColor = PilotGreenDark;
+            _operationReadinessLabel.BackColor = SignalBlueSoft;
+            _operationReadinessLabel.ForeColor = SignalBlue;
             _operationReadinessLabel.Font = new Font("Microsoft YaHei UI", 9.6F, FontStyle.Bold, GraphicsUnit.Point, 0);
             _operationReadinessLabel.Padding = new Padding(14, 10, 12, 8);
             _operationReadinessLabel.Resize += delegate { SetRoundedRegion(_operationReadinessLabel, 16); };
 
             _operationCategoryLabel = new Label();
             _operationCategoryLabel.Left = 22;
-            _operationCategoryLabel.Top = 132;
-            _operationCategoryLabel.Width = 184;
-            _operationCategoryLabel.Height = 70;
+            _operationCategoryLabel.Top = 144;
+            _operationCategoryLabel.Width = 182;
+            _operationCategoryLabel.Height = 74;
             _operationCategoryLabel.ForeColor = TextMuted;
-            _operationCategoryLabel.BackColor = Color.FromArgb(255, 248, 241);
+            _operationCategoryLabel.BackColor = Color.FromArgb(246, 249, 245);
             _operationCategoryLabel.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _operationCategoryLabel.Padding = new Padding(14, 10, 12, 8);
             _operationCategoryLabel.Resize += delegate { SetRoundedRegion(_operationCategoryLabel, 16); };
 
             _autoKeywordsBox = CreateTextBox(0, 0, 120, "家居收纳\r\n宠物慢食碗\r\n厨房置物架");
             _autoKeywordsBox.Multiline = true;
-            _autoKeywordsBox.Height = 70;
+            _autoKeywordsBox.Height = 72;
             _autoKeywordsBox.ScrollBars = ScrollBars.Vertical;
             _autoKeywordsBox.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
             Panel keywordField = CreateField("选品关键词", _autoKeywordsBox);
             keywordField.Dock = DockStyle.None;
-            keywordField.SetBounds(250, 56, 328, 100);
             _operationKeywordField = keywordField;
 
             _autoLoopCountBox = CreateTextBox(0, 0, 80, "1");
@@ -2605,26 +2962,23 @@ namespace LitchiOzonRecovery
             _autoLoopCountBox.TextAlign = HorizontalAlignment.Center;
             Panel loopField = CreateField("循环次数", _autoLoopCountBox);
             loopField.Dock = DockStyle.None;
-            loopField.SetBounds(594, 56, 108, 76);
             _operationLoopField = loopField;
 
-            _fullAutoButton = CreateButton("自动循环", RunFullAutoLoop, true);
-            _fullAutoButton.SetBounds(718, 78, 160, 42);
+            _fullAutoButton = CreateButton("开始全流程", RunFullAutoLoop, true);
 
             RoundedPanel settings = CreateSurfacePanel(18, new Padding(14));
             _operationSettingsPanel = settings;
             settings.Dock = DockStyle.None;
-            settings.SetBounds(250, 164, 628, 76);
             settings.DrawShadow = false;
-            settings.FillColor = Color.FromArgb(255, 248, 241);
-            settings.BorderColor = Color.FromArgb(239, 224, 212);
+            settings.FillColor = Color.FromArgb(247, 250, 246);
+            settings.BorderColor = Color.FromArgb(223, 232, 222);
 
             _autoPerKeywordBox = CreateTextBox(0, 0, 80, "5");
             _autoDetailLimitBox = CreateTextBox(0, 0, 80, "12");
             _autoRubRateBox = CreateTextBox(0, 0, 80, "12.5");
 
-            _runSourcingButton = CreateButton("选品", RunAutoSourcing, true);
-            _uploadSelectedButton = CreateButton("上传", UploadSelectedToOzon, false);
+            _runSourcingButton = CreateButton("开始选品", RunAutoSourcing, true);
+            _uploadSelectedButton = CreateButton("预览并上架", UploadSelectedToOzon, false);
             _listFbsButton = CreateButton("订单", ListOzonFbsPostings, false);
             _downloadLabelsButton = CreateButton("面单", DownloadOzonPackageLabels, false);
             _exportResultsButton = CreateButton("导出", ExportAutoCandidates, false);
@@ -2635,57 +2989,62 @@ namespace LitchiOzonRecovery
             _exportResultsButton.Visible = false;
 
             Label runCommand = CreateCommandButton("开始选品", RunAutoSourcing, true);
-            Label uploadCommand = CreateCommandButton("上传到Ozon", UploadSelectedToOzon, false);
-            Label orderCommand = CreateCommandButton("取订单", ListOzonFbsPostings, false);
+            Label uploadCommand = CreateCommandButton("预览并上架", UploadSelectedToOzon, false);
+            Label orderCommand = CreateCommandButton("订单", ListOzonFbsPostings, false);
             Label labelCommand = CreateCommandButton("下载面单", DownloadOzonPackageLabels, false);
             Label exportCommand = CreateCommandButton("导出结果", ExportAutoCandidates, false);
 
             FlowLayoutPanel actionGrid = new FlowLayoutPanel();
             _operationActionPanel = actionGrid;
             actionGrid.Dock = DockStyle.None;
-            actionGrid.SetBounds(250, 112, 640, 44);
-            actionGrid.Height = 48;
+            actionGrid.Height = 50;
             actionGrid.WrapContents = false;
             actionGrid.AutoScroll = false;
             actionGrid.BackColor = Color.Transparent;
-            runCommand.Width = 104;
-            uploadCommand.Width = 118;
-            orderCommand.Width = 86;
-            labelCommand.Width = 100;
-            exportCommand.Width = 100;
-            runCommand.Margin = new Padding(0, 6, 10, 0);
-            uploadCommand.Margin = new Padding(0, 6, 10, 0);
-            orderCommand.Margin = new Padding(0, 6, 10, 0);
-            labelCommand.Margin = new Padding(0, 6, 10, 0);
+            runCommand.Width = 96;
+            uploadCommand.Width = 116;
+            orderCommand.Width = 72;
+            labelCommand.Width = 92;
+            exportCommand.Width = 92;
+            runCommand.Margin = new Padding(0, 6, 8, 0);
+            uploadCommand.Margin = new Padding(0, 6, 8, 0);
+            orderCommand.Margin = new Padding(0, 6, 8, 0);
+            labelCommand.Margin = new Padding(0, 6, 8, 0);
             exportCommand.Margin = new Padding(0, 6, 0, 0);
             actionGrid.Controls.Add(runCommand);
             actionGrid.Controls.Add(uploadCommand);
             actionGrid.Controls.Add(orderCommand);
             actionGrid.Controls.Add(labelCommand);
             actionGrid.Controls.Add(exportCommand);
-            command.Controls.Add(actionGrid);
 
             _operationPreparePanel = new Panel();
             _operationPreparePanel.Dock = DockStyle.None;
-            _operationPreparePanel.SetBounds(226, 56, 302, 96);
             _operationPreparePanel.BackColor = Color.Transparent;
+            Label prepareTitle = new Label();
+            prepareTitle.Text = "现在不能开跑";
+            prepareTitle.Left = 0;
+            prepareTitle.Top = 0;
+            prepareTitle.Width = 260;
+            prepareTitle.Height = 26;
+            prepareTitle.ForeColor = TextStrong;
+            prepareTitle.Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold, GraphicsUnit.Point, 0);
             Label prepareHint = new Label();
-            prepareHint.Text = "准备完成后，这里会展开操作按钮。商品结果看右下“结果与反馈”，面单数量回到“总览”看。";
+            prepareHint.Text = "先去“准备”页完成 1688 登录检测和 Ozon API 验证。完成后这里会自动出现选品、上架和面单按钮，候选商品和上架结果会显示在右侧结果区。";
             prepareHint.Left = 0;
-            prepareHint.Top = 50;
-            prepareHint.Width = 300;
-            prepareHint.Height = 38;
+            prepareHint.Top = 76;
+            prepareHint.Width = 480;
+            prepareHint.Height = 52;
             prepareHint.ForeColor = TextMuted;
             prepareHint.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _operationPrepareCommandLabel = CreateCommandButton("去准备账号", delegate { SelectSetupTab(); }, true);
             _operationPrepareCommandLabel.Width = 132;
             _operationPrepareCommandLabel.Height = 40;
             _operationPrepareCommandLabel.Left = 0;
-            _operationPrepareCommandLabel.Top = 4;
+            _operationPrepareCommandLabel.Top = 32;
             _operationPrepareCommandLabel.Margin = new Padding(0);
             _operationPreparePanel.Controls.Add(prepareHint);
             _operationPreparePanel.Controls.Add(_operationPrepareCommandLabel);
-            command.Controls.Add(_operationPreparePanel);
+            _operationPreparePanel.Controls.Add(prepareTitle);
 
             TableLayoutPanel settingsGrid = new TableLayoutPanel();
             settingsGrid.Dock = DockStyle.Fill;
@@ -2722,18 +3081,27 @@ namespace LitchiOzonRecovery
             settings.Controls.Add(_autoApiKeyBox);
             settings.Controls.Add(_autoApiSecretBox);
 
+            command.Controls.Add(settings);
+            command.Controls.Add(actionGrid);
+            command.Controls.Add(_fullAutoButton);
+            command.Controls.Add(loopField);
+            command.Controls.Add(keywordField);
+            command.Controls.Add(_operationPreparePanel);
+            command.Controls.Add(_operationCategoryLabel);
+            command.Controls.Add(_operationReadinessLabel);
+            command.Controls.Add(commandHint);
+            command.Controls.Add(title);
+
             RoundedPanel results = CreateSurfacePanel(24, new Padding(16, 46, 16, 16));
             _operationResultsPanel = results;
-            results.Dock = DockStyle.None;
-            results.Width = 590;
-            results.Height = 308;
-            results.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
-            results.FillColor = Color.FromArgb(255, 253, 249);
-            results.BorderColor = Color.FromArgb(235, 219, 205);
-            results.ShadowColor = Color.FromArgb(26, 126, 78, 40);
+            results.Dock = DockStyle.Fill;
+            results.Margin = new Padding(0);
+            results.FillColor = FloatingPanelBack;
+            results.BorderColor = FloatingPanelLine;
+            results.ShadowColor = FloatingShadow;
 
             Label resultTitle = new Label();
-            resultTitle.Text = "结果与反馈";
+            resultTitle.Text = "候选商品";
             resultTitle.Left = 20;
             resultTitle.Top = 16;
             resultTitle.AutoSize = true;
@@ -2741,10 +3109,10 @@ namespace LitchiOzonRecovery
             resultTitle.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
 
             Label resultHint = new Label();
-            resultHint.Text = "商品表在上，执行反馈在下。面单下载后会写入 PDF 和批次汇总。";
-            resultHint.Left = 118;
+            resultHint.Text = "结果、预览和最近动作都在这里。";
+            resultHint.Left = 90;
             resultHint.Top = 18;
-            resultHint.Width = 430;
+            resultHint.Width = 300;
             resultHint.Height = 20;
             resultHint.ForeColor = TextMuted;
             resultHint.Font = new Font("Microsoft YaHei UI", 8.6F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -2757,19 +3125,19 @@ namespace LitchiOzonRecovery
             _autoResultGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _autoResultGrid.MultiSelect = true;
             _operationEmptyStateLabel = new Label();
-            _operationEmptyStateLabel.Text = "还没有商品结果\r\n从资产页双击类目，或输入关键词后点“开始选品”。";
+            _operationEmptyStateLabel.Text = "还没有候选商品\r\n输入关键词点“开始选品”，或直接点“开始全流程”。";
             _operationEmptyStateLabel.Dock = DockStyle.Fill;
             _operationEmptyStateLabel.TextAlign = ContentAlignment.MiddleCenter;
             _operationEmptyStateLabel.ForeColor = TextMuted;
             _operationEmptyStateLabel.BackColor = Color.FromArgb(255, 253, 249);
-            _operationEmptyStateLabel.Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            _operationEmptyStateLabel.Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold, GraphicsUnit.Point, 0);
             _autoLogBox = new TextBox();
             _autoLogBox.Multiline = true;
             _autoLogBox.ReadOnly = true;
             _autoLogBox.ScrollBars = ScrollBars.Vertical;
             _autoLogBox.Dock = DockStyle.Bottom;
-            _autoLogBox.Height = 76;
-            _autoLogBox.BackColor = Color.FromArgb(255, 248, 241);
+            _autoLogBox.Height = 64;
+            _autoLogBox.BackColor = Color.FromArgb(247, 250, 246);
             _autoLogBox.BorderStyle = BorderStyle.None;
             _autoLogBox.ForeColor = TextMuted;
             _autoLogBox.Font = new Font("Microsoft YaHei UI", 8.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -2780,52 +3148,64 @@ namespace LitchiOzonRecovery
             results.Controls.Add(resultHint);
             results.Controls.Add(resultTitle);
 
-            command.Controls.Add(settings);
-            command.Controls.Add(_fullAutoButton);
-            command.Controls.Add(loopField);
-            command.Controls.Add(keywordField);
-            command.Controls.Add(_operationCategoryLabel);
-            command.Controls.Add(_operationReadinessLabel);
-            command.Controls.Add(title);
+            RoundedPanel browserPanel = CreateSurfacePanel(24, new Padding(12, 46, 12, 36));
+            browserPanel.Dock = DockStyle.Fill;
+            browserPanel.Margin = new Padding(0);
+            browserPanel.FillColor = Color.FromArgb(255, 252, 248);
+            browserPanel.BorderColor = Color.FromArgb(231, 219, 208);
 
-            page.Resize += delegate
+            Label browserTitle = new Label();
+            browserTitle.Text = "1688 工作浏览器";
+            browserTitle.Left = 18;
+            browserTitle.Top = 14;
+            browserTitle.AutoSize = true;
+            browserTitle.ForeColor = TextStrong;
+            browserTitle.Font = new Font("Microsoft YaHei UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            Label browserHint = new Label();
+            browserHint.Text = "浏览器不再被控制台遮挡；验证码和登录弹窗在这里手动处理。";
+            browserHint.Dock = DockStyle.Bottom;
+            browserHint.Height = 30;
+            browserHint.ForeColor = TextMuted;
+            browserHint.BackColor = Color.FromArgb(255, 252, 248);
+            browserHint.Padding = new Padding(14, 7, 12, 4);
+
+            _operationBrowserHost = new Panel();
+            _operationBrowserHost.Dock = DockStyle.Fill;
+            _operationBrowserHost.BackColor = Color.White;
+            browserPanel.Controls.Add(_operationBrowserHost);
+            browserPanel.Controls.Add(browserTitle);
+            browserPanel.Controls.Add(browserHint);
+
+            command.Resize += delegate
             {
                 bool ready = _1688LoginVerified && _ozonCredentialsVerified;
-                int commandWidth = ready
-                    ? Math.Min(920, Math.Max(700, page.ClientSize.Width - 44))
-                    : Math.Min(580, Math.Max(500, page.ClientSize.Width - 44));
-                command.Width = commandWidth;
-                command.Height = ready ? 252 : 174;
-                command.Left = 22;
-                command.Top = 22;
-                _operationReadinessLabel.SetBounds(22, 56, 184, ready ? 66 : 76);
-                _operationCategoryLabel.SetBounds(22, 130, 184, 70);
-                int rightAreaLeft = ready ? 230 : 226;
-                int rightAreaWidth = Math.Max(360, command.ClientSize.Width - rightAreaLeft - 28);
-                keywordField.SetBounds(rightAreaLeft, 56, Math.Max(260, rightAreaWidth - 300), 100);
-                loopField.SetBounds(command.ClientSize.Width - 346, 56, 108, 76);
-                _fullAutoButton.SetBounds(command.ClientSize.Width - 176, 78, 150, 42);
-                actionGrid.SetBounds(rightAreaLeft, 112, rightAreaWidth, 44);
-                _operationPreparePanel.SetBounds(rightAreaLeft, 56, Math.Min(320, rightAreaWidth), 96);
-                settings.SetBounds(rightAreaLeft, 164, rightAreaWidth, 76);
-                results.Width = Math.Min(600, Math.Max(420, page.ClientSize.Width - 44));
-                results.Height = Math.Min(318, Math.Max(236, page.ClientSize.Height - 318));
-                results.Left = Math.Max(22, page.ClientSize.Width - results.Width - 22);
-                results.Top = Math.Max(command.Bottom + 18, page.ClientSize.Height - results.Height - 22);
+                int rightLeft = command.ClientSize.Width < 620 ? 22 : 224;
+                int rightWidth = Math.Max(260, command.ClientSize.Width - rightLeft - 22);
+                _operationReadinessLabel.SetBounds(22, 62, 182, ready ? 66 : 76);
+                _operationCategoryLabel.SetBounds(22, 136, 182, 74);
+                keywordField.SetBounds(rightLeft, 62, Math.Max(250, rightWidth - 272), 104);
+                loopField.SetBounds(command.ClientSize.Width - 278, 62, 102, 78);
+                _fullAutoButton.SetBounds(command.ClientSize.Width - 164, 86, 142, 44);
+                actionGrid.SetBounds(rightLeft, 122, rightWidth, 50);
+                settings.SetBounds(rightLeft, 182, rightWidth, 76);
+                _operationPreparePanel.SetBounds(rightLeft, 62, Math.Min(500, rightWidth), 140);
+                commandHint.Left = command.ClientSize.Width < 620 ? 22 : 184;
+                commandHint.Top = command.ClientSize.Width < 620 ? 46 : 24;
+                commandHint.Width = Math.Max(260, command.ClientSize.Width - commandHint.Left - 22);
+                title.Width = Math.Max(190, command.ClientSize.Width - 44);
             };
 
-            page.Controls.Add(browserPanel);
-            page.Controls.Add(results);
-            page.Controls.Add(command);
-            command.BringToFront();
-            results.BringToFront();
+            _operationTopLayout.Controls.Add(command, 0, 0);
+            _operationTopLayout.Controls.Add(results, 1, 0);
+            page.Controls.Add(_operationTopLayout, 0, 0);
+            page.Controls.Add(browserPanel, 0, 1);
             tab.Controls.Add(page);
             UpdateAutomationCategoryDisplay();
             UpdateOperationReadiness();
             UpdateOperationResultState();
             return tab;
         }
-
         private Label CreateFlowText(string text, int width, int height, float size, FontStyle style, Color color)
         {
             Label label = new Label();
@@ -2901,6 +3281,37 @@ namespace LitchiOzonRecovery
             input.Height = Math.Max(input.Height, 30);
             input.Margin = new Padding(0);
             field.Controls.Add(input);
+            field.Controls.Add(labelControl);
+            return field;
+        }
+
+        private Panel CreateSetupCredentialField(string label, TextBox input)
+        {
+            Panel field = new Panel();
+            field.Dock = DockStyle.Fill;
+            field.Padding = new Padding(0, 0, 0, 10);
+            field.BackColor = Color.Transparent;
+
+            Label labelControl = new Label();
+            labelControl.Text = label;
+            labelControl.Dock = DockStyle.Top;
+            labelControl.Height = 22;
+            labelControl.ForeColor = TextMuted;
+            labelControl.Font = new Font("Microsoft YaHei UI", 8.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+
+            RoundedPanel inputShell = CreateSurfacePanel(12, new Padding(12, 7, 12, 4));
+            inputShell.Dock = DockStyle.Top;
+            inputShell.Height = 36;
+            inputShell.DrawShadow = false;
+            inputShell.FillColor = Color.White;
+            inputShell.BorderColor = Color.FromArgb(214, 220, 228);
+
+            input.BorderStyle = BorderStyle.None;
+            input.BackColor = Color.White;
+            input.Dock = DockStyle.Fill;
+            input.Font = new Font("Microsoft YaHei UI", 9.2F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            inputShell.Controls.Add(input);
+            field.Controls.Add(inputShell);
             field.Controls.Add(labelControl);
             return field;
         }
@@ -3152,6 +3563,7 @@ namespace LitchiOzonRecovery
                 _languageComboBox.SelectedIndex = LanguageIndexFromCode(_uiLanguage);
             }
             ApplyOzonSellerDefaults();
+            UpdateConfigFormFromSnapshot();
         }
 
         private void ApplyOzonSellerDefaults()
@@ -3169,15 +3581,52 @@ namespace LitchiOzonRecovery
             UpdateSetupStatus();
         }
 
+        private int GetSetupPanelTargetWidth()
+        {
+            bool ready = _1688LoginVerified && _ozonCredentialsVerified;
+            if (_setupPanelCollapsed && !ready)
+            {
+                return 128;
+            }
+
+            return ready ? 390 : Math.Min(Math.Max(360, _setupDrawerWidth), 390);
+        }
+
+        private void ApplySetupPanelChrome()
+        {
+            if (_setupPanel == null)
+            {
+                return;
+            }
+
+            bool ready = _1688LoginVerified && _ozonCredentialsVerified;
+            int targetWidth = GetSetupPanelTargetWidth();
+            _setupPanel.Dock = DockStyle.Fill;
+            _setupPanel.Visible = true;
+            _setupPanel.Padding = ready ? new Padding(14) : _setupPanelCollapsed ? new Padding(8, 14, 8, 14) : new Padding(14);
+
+            if (_setupSplitContainer != null && _setupSplitContainer.Width >= 560)
+            {
+                int minDrawer = _setupPanelCollapsed && !ready ? 128 : 360;
+                int maxDrawer = Math.Max(minDrawer, _setupSplitContainer.Width - 520 - _setupSplitContainer.SplitterWidth);
+                int drawerWidth = Math.Min(targetWidth, maxDrawer);
+                drawerWidth = Math.Max(minDrawer, drawerWidth);
+                if (drawerWidth > 0 && drawerWidth < _setupSplitContainer.Width)
+                {
+                    _setupSplitContainer.SplitterDistance = drawerWidth;
+                }
+            }
+        }
         private void UpdateSetupStatus()
         {
             if (_setup1688StatusLabel != null)
             {
                 bool browserReady = _browser != null && _browser.CoreWebView2 != null;
                 _setup1688StatusLabel.Text = _1688LoginVerified
-                    ? "1688：已检测到登录"
-                    : browserReady ? "1688：待检测" : "1688：未启动";
-                _setup1688StatusLabel.ForeColor = _1688LoginVerified ? PilotGreen : WarningAmber;
+                    ? "1688登录：已通过"
+                    : browserReady ? "1688登录：待检测" : "浏览器：未启动";
+                _setup1688StatusLabel.ForeColor = _1688LoginVerified ? SuccessGreen : SignalBlue;
+                _setup1688StatusLabel.BackColor = _1688LoginVerified ? SuccessGreenSoft : SignalBlueSoft;
             }
 
             if (_setupOzonStatusLabel != null)
@@ -3186,15 +3635,21 @@ namespace LitchiOzonRecovery
                     !string.IsNullOrWhiteSpace(_ozonClientIdBox.Text) &&
                     !string.IsNullOrWhiteSpace(_ozonApiKeyBox.Text);
                 _setupOzonStatusLabel.Text = _ozonCredentialsVerified
-                    ? "Ozon：API 已验证"
-                    : hasOzon ? "Ozon：待验证" : "Ozon：待填写";
-                _setupOzonStatusLabel.ForeColor = _ozonCredentialsVerified ? PilotGreen : WarningAmber;
+                    ? "Ozon API：已通过"
+                    : hasOzon ? "Ozon API：待验证" : "Ozon API：未填写";
+                _setupOzonStatusLabel.ForeColor = _ozonCredentialsVerified ? SuccessGreen : WarningAmber;
+                _setupOzonStatusLabel.BackColor = _ozonCredentialsVerified ? SuccessGreenSoft : Color.FromArgb(255, 242, 231);
             }
 
             bool ready = _1688LoginVerified && _ozonCredentialsVerified;
             if (_setupCompletedLabel != null)
             {
                 _setupCompletedLabel.Visible = ready;
+            }
+            if (_setupIntroGoOperationButton != null)
+            {
+                _setupIntroGoOperationButton.Enabled = ready;
+                _setupIntroGoOperationButton.Text = "去运营";
             }
 
             if (_setupPanel != null)
@@ -3205,21 +3660,26 @@ namespace LitchiOzonRecovery
                     bool readyControl = control == _setupCompletedLabel ||
                         (control.Tag != null && string.Equals(Convert.ToString(control.Tag), "ready", StringComparison.Ordinal));
                     bool normalControl = control.Tag != null && string.Equals(Convert.ToString(control.Tag), "normal", StringComparison.Ordinal);
+                    bool collapsedControl = control.Tag != null && string.Equals(Convert.ToString(control.Tag), "collapsed", StringComparison.Ordinal);
                     if (readyControl)
                     {
                         control.Visible = ready;
                     }
+                    else if (collapsedControl)
+                    {
+                        control.Visible = !ready && _setupPanelCollapsed;
+                    }
                     else if (normalControl)
                     {
-                        control.Visible = !ready;
+                        control.Visible = !ready && !_setupPanelCollapsed;
                     }
                     else
                     {
-                        control.Visible = !ready;
+                        control.Visible = !ready && !_setupPanelCollapsed;
                     }
                 }
 
-                _setupPanel.Height = ready ? 92 : 202;
+                ApplySetupPanelChrome();
                 if (_setupBodyLayout != null && _setupBodyLayout.RowStyles.Count > 0)
                 {
                     _setupBodyLayout.RowStyles[0].Height = ready ? 82 : 376;
@@ -3238,8 +3698,8 @@ namespace LitchiOzonRecovery
             if (_setupActionLabel != null && !ready)
             {
                 _setupActionLabel.Text = BuildSetupNextAction();
-                _setupActionLabel.ForeColor = PilotGreenDark;
-                _setupActionLabel.BackColor = Color.FromArgb(255, 237, 222);
+                _setupActionLabel.ForeColor = SignalBlue;
+                _setupActionLabel.BackColor = SignalBlueSoft;
             }
             UpdateAutomationCategoryDisplay();
             UpdateOverviewCards();
@@ -3250,27 +3710,32 @@ namespace LitchiOzonRecovery
         {
             if (_browser == null || _browser.CoreWebView2 == null)
             {
-                return "下一步：启动浏览器";
+                return "第 1 步：先点“启动浏览器”，右侧出现网页后继续。";
             }
 
             if (!_1688LoginVerified)
             {
-                return "下一步：打开1688后检测";
+                if (_browser != null && _browser.CoreWebView2 != null && _browserUrlBox != null && Is1688RelatedUrl(_browserUrlBox.Text))
+                {
+                    return "当前动作：右侧登录，验证码手动处理。";
+                }
+
+                return "当前动作：点“打开登录”，然后登录。";
             }
 
             if (_ozonClientIdBox == null || _ozonApiKeyBox == null ||
                 string.IsNullOrWhiteSpace(_ozonClientIdBox.Text) ||
                 string.IsNullOrWhiteSpace(_ozonApiKeyBox.Text))
             {
-                return "下一步：获取API后填写";
+                return "当前动作：填写 Ozon API。";
             }
 
             if (!_ozonCredentialsVerified)
             {
-                return "下一步：验证 Ozon API";
+                return "当前动作：点“验证并保存”。";
             }
 
-            return "准备完成，可以去运营";
+            return "准备完成：点“完成后进入运营”开始选品、上传和面单。";
         }
 
         private void SelectSetupTab()
@@ -3279,7 +3744,24 @@ namespace LitchiOzonRecovery
             {
                 _mainTabs.SelectedTab = _setupTab;
                 AttachBrowserToHost(_setupBrowserHost);
+                ApplySetupPanelChrome();
             }
+        }
+
+        private void CollapseSetupPanel()
+        {
+            _setupPanelCollapsed = true;
+            UpdateSetupStatus();
+            ApplySetupPanelChrome();
+            SetStatus("准备面板已收起。右侧浏览器空间变大；需要继续设置时点左侧“API”。");
+        }
+
+        private void ExpandSetupPanel()
+        {
+            _setupPanelCollapsed = false;
+            UpdateSetupStatus();
+            ApplySetupPanelChrome();
+            SetStatus("准备面板已展开。按 1、2、3 做；中间分隔条可以在应用内拖宽拖窄。");
         }
 
         private void SelectOperationTab()
@@ -3325,10 +3807,10 @@ namespace LitchiOzonRecovery
 
             bool ready = _1688LoginVerified && _ozonCredentialsVerified;
             _operationReadinessLabel.Text = ready
-                ? "已准备好\r\n1688 已登录\r\nOzon API 已验证"
-                : "还不能开跑\r\n先完成账号准备";
-            _operationReadinessLabel.BackColor = ready ? PilotGreenSoft : Color.FromArgb(255, 242, 231);
-            _operationReadinessLabel.ForeColor = ready ? PilotGreenDark : WarningAmber;
+                ? "可以开跑\r\n1688 已登录\r\nOzon API 已验证"
+                : "先做准备\r\n登录1688\r\n验证Ozon API";
+            _operationReadinessLabel.BackColor = ready ? SuccessGreenSoft : SignalBlueSoft;
+            _operationReadinessLabel.ForeColor = ready ? SuccessGreen : SignalBlue;
             UpdateAutomationCategoryDisplay();
             if (_operationActionPanel != null)
             {
@@ -3348,10 +3830,8 @@ namespace LitchiOzonRecovery
             }
             if (_operationCommandPanel != null)
             {
-                int targetWidth = ready ? 920 : 580;
-                int minWidth = ready ? 700 : 500;
-                _operationCommandPanel.Width = Math.Min(targetWidth, Math.Max(minWidth, _operationCommandPanel.Parent == null ? targetWidth : _operationCommandPanel.Parent.ClientSize.Width - 44));
-                _operationCommandPanel.Height = ready ? 252 : 174;
+                _operationCommandPanel.Dock = DockStyle.Fill;
+                _operationCommandPanel.Visible = true;
             }
             if (_operationKeywordField != null)
             {
@@ -3373,12 +3853,17 @@ namespace LitchiOzonRecovery
             {
                 _operationResultsPanel.Visible = ready;
             }
-            if (_operationLayout != null && _operationLayout.RowStyles.Count >= 3)
+            if (_operationTopLayout != null && _operationTopLayout.ColumnStyles.Count >= 2)
             {
-                _operationLayout.RowStyles[0].Height = ready ? 184 : 184;
-                _operationLayout.RowStyles[1].Height = ready ? 118 : 0;
-                _operationLayout.RowStyles[2].Height = ready ? 100 : 0;
-                _operationLayout.RowStyles[2].SizeType = ready ? SizeType.Percent : SizeType.Absolute;
+                _operationTopLayout.ColumnStyles[0].Width = ready ? 66 : 100;
+                _operationTopLayout.ColumnStyles[1].Width = ready ? 34 : 0;
+            }
+            if (_operationLayout != null && _operationLayout.RowStyles.Count >= 2)
+            {
+                _operationLayout.RowStyles[0].SizeType = SizeType.Absolute;
+                _operationLayout.RowStyles[0].Height = ready ? 318 : 238;
+                _operationLayout.RowStyles[1].SizeType = SizeType.Percent;
+                _operationLayout.RowStyles[1].Height = 100;
             }
             if (_fullAutoButton != null) _fullAutoButton.Enabled = true;
             if (_runSourcingButton != null) _runSourcingButton.Enabled = true;
@@ -3404,8 +3889,17 @@ namespace LitchiOzonRecovery
             }
             if (_overviewCategoryLabel != null)
             {
-                _overviewCategoryLabel.Text = categoryText.Replace(Environment.NewLine, " ");
+                _overviewCategoryLabel.Text = BuildOverviewCategoryText();
             }
+        }
+
+        private string BuildOverviewCategoryText()
+        {
+            string categoryId = _autoCategoryIdBox == null ? string.Empty : _autoCategoryIdBox.Text.Trim();
+            string typeId = _autoTypeIdBox == null ? string.Empty : _autoTypeIdBox.Text.Trim();
+            bool hasCategory = !string.IsNullOrEmpty(categoryId) && categoryId != "0" &&
+                !string.IsNullOrEmpty(typeId) && typeId != "0";
+            return hasCategory ? "已选择类目" : "未指定类目";
         }
 
         private string BuildAutomationCategoryText()
@@ -3430,7 +3924,7 @@ namespace LitchiOzonRecovery
             }
 
             button.BackColor = enabled
-                ? primary ? PilotGreen : Color.FromArgb(255, 250, 244)
+                ? primary ? SignalBlue : Color.FromArgb(255, 252, 248)
                 : Color.FromArgb(236, 229, 221);
             button.ForeColor = enabled
                 ? primary ? Color.White : TextStrong
@@ -3461,11 +3955,7 @@ namespace LitchiOzonRecovery
 
         private void ExpandSetupPanel(object sender, EventArgs e)
         {
-            _1688LoginVerified = false;
-            _ozonCredentialsVerified = false;
-            UpdateSetupStatus();
-            UpdateOperationReadiness();
-            SetStatus("准备区已展开，可以修改账号或重新检测。");
+            ExpandSetupPanel();
         }
 
         private void RecheckSetup(object sender, EventArgs e)
@@ -3510,12 +4000,103 @@ namespace LitchiOzonRecovery
             SelectOperationTab();
         }
 
+        private void UpdateConfigFormFromSnapshot()
+        {
+            AppConfig config = _snapshot == null ? null : _snapshot.Config;
+            if (config == null)
+            {
+                return;
+            }
+
+            if (_configMinPriceBox != null) _configMinPriceBox.Text = config.MinPirce.ToString("0.##");
+            if (_configMaxPriceBox != null) _configMaxPriceBox.Text = config.MaxPrice.ToString("0.##");
+            if (_configTargetProfitBox != null) _configTargetProfitBox.Text = config.TargetProfitPercent.ToString("0.##");
+            if (_configPlatformCommissionBox != null) _configPlatformCommissionBox.Text = config.PlatformCommissionPercent.ToString("0.##");
+            if (_configPromotionExpenseBox != null) _configPromotionExpenseBox.Text = config.PromotionExpensePercent.ToString("0.##");
+            if (_configDeliveryFeeBox != null) _configDeliveryFeeBox.Text = config.DeliveryFee.ToString("0.##");
+            if (_configCatchNumBox != null) _configCatchNumBox.Text = config.CatchNum.ToString();
+            if (_configFboCheckBox != null) _configFboCheckBox.Checked = config.IsFbo;
+        }
+
+        private bool ApplyConfigFormToModel(AppConfig config)
+        {
+            decimal minPrice;
+            decimal maxPrice;
+            decimal targetProfit;
+            decimal commission;
+            decimal promotion;
+            decimal deliveryFee;
+            int catchNum;
+            if (!TryReadDecimal(_configMinPriceBox, "最低售价", out minPrice) ||
+                !TryReadDecimal(_configMaxPriceBox, "最高售价", out maxPrice) ||
+                !TryReadDecimal(_configTargetProfitBox, "目标利润率", out targetProfit) ||
+                !TryReadDecimal(_configPlatformCommissionBox, "平台佣金", out commission) ||
+                !TryReadDecimal(_configPromotionExpenseBox, "推广费用", out promotion) ||
+                !TryReadDecimal(_configDeliveryFeeBox, "默认运费", out deliveryFee) ||
+                !TryReadInt(_configCatchNumBox, "抓取数量", out catchNum))
+            {
+                return false;
+            }
+
+            if (maxPrice < minPrice)
+            {
+                MessageBox.Show(this, "最高售价不能小于最低售价。", "配置不正确", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return false;
+            }
+
+            if (commission + promotion + targetProfit >= 100m)
+            {
+                MessageBox.Show(this, "平台佣金 + 推广费用 + 目标利润率必须小于 100%，否则售价公式无法计算。", "配置不正确", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return false;
+            }
+
+            config.MinPirce = minPrice;
+            config.MaxPrice = maxPrice;
+            config.TargetProfitPercent = targetProfit;
+            config.PlatformCommissionPercent = commission;
+            config.PromotionExpensePercent = promotion;
+            config.DeliveryFee = deliveryFee;
+            config.CatchNum = catchNum;
+            if (_configFboCheckBox != null) config.IsFbo = _configFboCheckBox.Checked;
+            return true;
+        }
+
+        private bool TryReadDecimal(TextBox box, string label, out decimal value)
+        {
+            value = 0m;
+            if (box == null || decimal.TryParse(box.Text.Trim(), out value))
+            {
+                return true;
+            }
+
+            MessageBox.Show(this, label + "必须填写数字。", "配置不正确", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (box != null) box.Focus();
+            return false;
+        }
+
+        private bool TryReadInt(TextBox box, string label, out int value)
+        {
+            value = 0;
+            if (box == null || int.TryParse(box.Text.Trim(), out value))
+            {
+                return true;
+            }
+
+            MessageBox.Show(this, label + "必须填写整数。", "配置不正确", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (box != null) box.Focus();
+            return false;
+        }
         private void SaveConfig(object sender, EventArgs e)
         {
             try
             {
                 AppConfig config = _configGrid.SelectedObject as AppConfig;
                 if (config == null)
+                {
+                    return;
+                }
+
+                if (!ApplyConfigFormToModel(config))
                 {
                     return;
                 }
@@ -3612,7 +4193,7 @@ namespace LitchiOzonRecovery
 
             if (_overviewCategoryLabel != null)
             {
-                _overviewCategoryLabel.Text = BuildAutomationCategoryText().Replace(Environment.NewLine, " ");
+                _overviewCategoryLabel.Text = BuildOverviewCategoryText();
                 _overviewCategoryLabel.ForeColor = TextStrong;
             }
 
@@ -4205,13 +4786,22 @@ namespace LitchiOzonRecovery
                     _fullAutoReport = report.ToString();
                     SelectOperationTab();
                     UpdateOverview();
-                    SetStatus("1688 抓取完成，正在提交 Ozon 上传...");
+                    SetStatus("1688 抓取完成，请确认后再提交 Ozon。");
 
                     List<SourceProduct> uploadProducts = PickProductsForUpload(_lastSourcingResult.Products);
                     if (uploadProducts.Count == 0)
                     {
                         report.AppendLine("上传：跳过，没有可上传候选。");
                         continue;
+                    }
+
+                    if (!ConfirmOzonListingSubmission(uploadProducts, options, "全自动循环第 " + (i + 1) + " 轮"))
+                    {
+                        report.AppendLine("上传：已停在人工确认，没有提交 Ozon。");
+                        _fullAutoReport = report.ToString();
+                        UpdateOverview();
+                        SetStatus("已停在上架预览，未提交 Ozon。");
+                        break;
                     }
 
                     try
@@ -5236,6 +5826,131 @@ namespace LitchiOzonRecovery
             return builder.ToString();
         }
 
+        private bool ConfirmOzonListingSubmission(IList<SourceProduct> products, SourcingOptions options, string sourceName)
+        {
+            if (products == null || products.Count == 0)
+            {
+                return false;
+            }
+
+            StringBuilder message = new StringBuilder();
+            message.AppendLine("即将真正提交到 Ozon。请先确认这批商品没问题：");
+            message.AppendLine();
+            message.AppendLine("来源：" + SafeValue(sourceName));
+            message.AppendLine("商品数：" + products.Count);
+            message.AppendLine("Ozon 类目：" + SafeValue(options == null ? null : Convert.ToString(options.OzonCategoryId)) + " / " + SafeValue(options == null ? null : Convert.ToString(options.OzonTypeId)));
+            message.AppendLine("image2 图片处理：" + (IsImage2Configured() ? "已接入，会先处理主图" : "未检测到 key，本次会跳过图片改图"));
+            message.AppendLine("提交后动作：创建 Ozon import 任务；审核通过的 Offer 会继续等待 SKU 并把库存设为 100。");
+            message.AppendLine();
+            message.AppendLine("定价规则：售价 = (进货 + 国内物流 + 国际物流) / (1 - 平台佣金 - 推广费 - 目标利润)");
+            message.AppendLine();
+
+            int previewCount = Math.Min(3, products.Count);
+            for (int i = 0; i < previewCount; i++)
+            {
+                SourceProduct product = products[i];
+                OzonListingPricePreview preview = _automationService.PreviewOzonListingPrice(product, options);
+                message.AppendLine((i + 1) + ". " + CompactText(FirstNonEmpty(product == null ? null : product.RussianTitle, product == null ? null : product.Title, product == null ? null : product.OfferId), 56));
+                message.AppendLine("   Offer: " + SafeValue(product == null ? null : product.OfferId));
+                message.AppendLine("   图片: " + CountProductImages(product) + " 张；1688价: " + FormatMoney(product == null ? 0m : product.PriceCny));
+                if (preview.Success)
+                {
+                    message.AppendLine("   预估售价: " + FormatMoney(preview.SuggestedSellingPrice) + "；成本 " + FormatMoney(preview.EstimatedCost) + "；物流 " + FormatMoney(preview.InternationalLogisticsFee) + "；佣金/推广/利润 " + FormatPercent(preview.PlatformCommissionPercent) + "/" + FormatPercent(preview.PromotionExpensePercent) + "/" + FormatPercent(preview.TargetProfitPercent));
+                    message.AppendLine("   运费规则: " + SafeValue(preview.MatchedFeeRule));
+                }
+                else
+                {
+                    message.AppendLine("   定价预览失败: " + SafeValue(preview.ErrorMessage));
+                }
+            }
+
+            if (products.Count > previewCount)
+            {
+                message.AppendLine("... 其余 " + (products.Count - previewCount) + " 个商品会使用同一套规则处理。");
+            }
+
+            message.AppendLine();
+            message.AppendLine("点“是”才会提交到 Ozon；点“否”会停在当前结果，不会创建商品。 ");
+
+            DialogResult answer = MessageBox.Show(
+                this,
+                message.ToString(),
+                "上架前确认",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+            return answer == DialogResult.Yes;
+        }
+
+        private static bool IsImage2Configured()
+        {
+            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SUB2API_API_KEY"));
+        }
+
+        private static string FirstNonEmpty(params string[] values)
+        {
+            for (int i = 0; values != null && i < values.Length; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(values[i]))
+                {
+                    return values[i].Trim();
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static int CountProductImages(SourceProduct product)
+        {
+            int count = 0;
+            if (product == null)
+            {
+                return count;
+            }
+
+            if (!string.IsNullOrWhiteSpace(product.MainImage))
+            {
+                count++;
+            }
+
+            for (int i = 0; product.Images != null && i < product.Images.Count; i++)
+            {
+                string image = product.Images[i];
+                if (!string.IsNullOrWhiteSpace(image) && !string.Equals(image, product.MainImage, StringComparison.OrdinalIgnoreCase))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static string CompactText(string value, int maxLength)
+        {
+            string text = (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ").Trim();
+            while (text.IndexOf("  ", StringComparison.Ordinal) >= 0)
+            {
+                text = text.Replace("  ", " ");
+            }
+
+            if (maxLength <= 0 || text.Length <= maxLength)
+            {
+                return text;
+            }
+
+            return text.Substring(0, Math.Max(0, maxLength - 3)) + "...";
+        }
+
+        private static string FormatMoney(decimal value)
+        {
+            return value.ToString("0.##") + " 元";
+        }
+
+        private static string FormatPercent(decimal value)
+        {
+            return value.ToString("0.##") + "%";
+        }
+
         private async void UploadSelectedToOzon(object sender, EventArgs e)
         {
             if (!EnsureOperationReady("上传选中"))
@@ -5253,6 +5968,12 @@ namespace LitchiOzonRecovery
                 }
 
                 SourcingOptions options = ReadSourcingOptions();
+                if (!ConfirmOzonListingSubmission(selected, options, "手动选择"))
+                {
+                    SetStatus("已取消上架，未提交 Ozon。");
+                    return;
+                }
+
                 OzonImportResult result = _automationService.UploadToOzon(
                     selected,
                     options,
@@ -5823,6 +6544,15 @@ namespace LitchiOzonRecovery
         {
             try
             {
+                if (_browser != null && _browser.CoreWebView2 != null)
+                {
+                    _browserStatusLabel.Text = _browserExtensionReady
+                        ? "浏览器已就绪，1688 插件已挂载，页面缩放 90%。"
+                        : "浏览器已就绪。";
+                    UpdateSetupStatus();
+                    return;
+                }
+
                 _browserExtensionReady = false;
                 _browser.CoreWebView2InitializationCompleted -= BrowserInitializationCompleted;
                 _browser.CoreWebView2InitializationCompleted += BrowserInitializationCompleted;
@@ -5892,6 +6622,10 @@ namespace LitchiOzonRecovery
         private async void BrowserNavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             await HideBrowserPageFloatingChrome();
+            await Task.Delay(900);
+            await HideBrowserPageFloatingChrome();
+            await Task.Delay(1600);
+            await HideBrowserPageFloatingChrome();
         }
 
         private async Task HideBrowserPageFloatingChrome()
@@ -5914,6 +6648,12 @@ namespace LitchiOzonRecovery
   var nodes=document.querySelectorAll('body *');
   for(var i=0;i<nodes.length;i++){
     var el=nodes[i], cs=getComputedStyle(el), r=el.getBoundingClientRect();
+    var text=((el.innerText||'')+'').replace(/\s+/g,' ');
+    if(cs.position==='fixed' && r.width<520 && r.height<260 &&
+       (text.indexOf('鼠标放面板')>=0 || text.indexOf('收起按钮')>=0 || (text.indexOf('知道了')>=0 && text.indexOf('折叠菜单')>=0))){
+      el.style.display='none';
+      continue;
+    }
     if(cs.position==='fixed' && r.left<260 && r.top>window.innerHeight-210){
       var bg=cs.backgroundColor || '';
       if(bg.indexOf('rgb(51, 51, 51)')>=0 || bg.indexOf('rgb(0, 0, 0)')>=0 || bg.indexOf('rgba(0, 0, 0')>=0){
@@ -5987,7 +6727,137 @@ namespace LitchiOzonRecovery
             }
 
             NavigateBrowser(sender, e);
-            SetStatus("已打开 1688，请完成登录后点击“检测登录”。");
+            CollapseSetupPanel();
+            SetStatus("已打开 1688。请在右侧手动完成登录/验证码，然后点左侧“检测登录”。");
+            if (_browserStatusLabel != null)
+            {
+                _browserStatusLabel.Text = "请在右侧完成 1688 登录；有验证码或滑块时手动处理，完成后点左侧“检测登录”。";
+            }
+        }
+
+        private async Task<LoginProbeResult> Probe1688LoginAsync()
+        {
+            LoginProbeResult probe = new LoginProbeResult();
+            string script = @"(function(){
+  var text=((document.body&&document.body.innerText)||'').replace(/\s+/g,' ').substring(0,2200);
+  var href=String(location.href||'');
+  var links=Array.prototype.slice.call(document.querySelectorAll('a[href]')).map(function(a){return String(a.href||'') + ' ' + String(a.innerText||'');}).join(' ');
+  var loginInput=!!document.querySelector('input[type=""password""], iframe[src*=""login""], iframe[src*=""passport""]');
+  var accountText=/我的阿里|买家中心|卖家中心|已买到的货品|我的收藏|退出登录|退出/.test(text);
+  var accountLink=/member\.1688\.com|work\.1688\.com|login\.1688\.com\/member|\/member\//i.test(links);
+  var loginText=/请登录|登录\/注册|免费注册|立即登录|密码登录|扫码登录|账户登录/.test(text);
+  var loginLink=/login\.1688\.com|login\.taobao\.com|passport/i.test(links);
+  return JSON.stringify({
+    href: href,
+    pageShowsAccount: accountText || accountLink,
+    pageShowsLogin: loginInput || loginText || loginLink
+  });
+})()";
+
+            string raw = await _browser.CoreWebView2.ExecuteScriptAsync(script);
+            string json = JsonConvert.DeserializeObject<string>(raw);
+            JObject page = JObject.Parse(string.IsNullOrEmpty(json) ? "{}" : json);
+            probe.Href = Convert.ToString(page["href"] ?? string.Empty);
+            probe.PageShowsAccount = Convert.ToBoolean(page["pageShowsAccount"] ?? false);
+            probe.PageShowsLogin = Convert.ToBoolean(page["pageShowsLogin"] ?? false);
+            probe.On1688Domain = Is1688WorkUrl(probe.Href);
+            probe.OnRelatedLoginDomain = Is1688RelatedUrl(probe.Href);
+            probe.OnLoginPage = Is1688LoginUrl(probe.Href) || (probe.PageShowsLogin && !probe.PageShowsAccount);
+            probe.CookieShowsAccount = await BrowserHas1688LoginCookiesAsync();
+            return probe;
+        }
+
+        private async Task<bool> BrowserHas1688LoginCookiesAsync()
+        {
+            HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string[] urls = new string[]
+            {
+                "https://www.1688.com/",
+                "https://member.1688.com/",
+                "https://login.1688.com/",
+                "https://login.taobao.com/"
+            };
+
+            for (int i = 0; i < urls.Length; i++)
+            {
+                try
+                {
+                    List<CoreWebView2Cookie> cookies = await _browser.CoreWebView2.CookieManager.GetCookiesAsync(urls[i]);
+                    for (int j = 0; j < cookies.Count; j++)
+                    {
+                        if (cookies[j] != null && !string.IsNullOrEmpty(cookies[j].Name))
+                        {
+                            names.Add(cookies[j].Name);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Cookie probing is best-effort; page signals still decide when cookies are unavailable.
+                }
+            }
+
+            return CookieNamesIndicate1688Login(names);
+        }
+
+        private static bool CookieNamesIndicate1688Login(HashSet<string> names)
+        {
+            if (names == null || names.Count == 0)
+            {
+                return false;
+            }
+
+            if (names.Contains("unb") || names.Contains("_nk_") || names.Contains("tracknick") || names.Contains("lgc") || names.Contains("lid"))
+            {
+                return true;
+            }
+
+            string[] supporting = new string[] { "cookie2", "sgcookie", "uc1", "uc3", "_l_g_" };
+            int score = 0;
+            for (int i = 0; i < supporting.Length; i++)
+            {
+                if (names.Contains(supporting[i]))
+                {
+                    score++;
+                }
+            }
+
+            return score >= 2;
+        }
+
+        private static bool Is1688WorkUrl(string href)
+        {
+            if (string.IsNullOrEmpty(href))
+            {
+                return false;
+            }
+
+            return href.IndexOf("1688.com", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                href.IndexOf("login.", StringComparison.OrdinalIgnoreCase) < 0 &&
+                href.IndexOf("passport", StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private static bool Is1688RelatedUrl(string href)
+        {
+            if (string.IsNullOrEmpty(href))
+            {
+                return false;
+            }
+
+            return href.IndexOf("1688.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                href.IndexOf("taobao.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                href.IndexOf("alibaba.com", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool Is1688LoginUrl(string href)
+        {
+            if (string.IsNullOrEmpty(href))
+            {
+                return false;
+            }
+
+            return href.IndexOf("login", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                href.IndexOf("passport", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private async void Check1688Login(object sender, EventArgs e)
@@ -6000,36 +6870,46 @@ namespace LitchiOzonRecovery
                     return;
                 }
 
-                string script = "(function(){var text=(document.body&&document.body.innerText)||'';var href=location.href;var logged=/我的阿里|买家中心|卖家中心|消息|已登录|退出/.test(text);var login=/请登录|登录\\/注册|免费注册/.test(text);return JSON.stringify({href:href,logged:logged,login:login,text:text.substring(0,800)});})()";
-                string raw = await _browser.CoreWebView2.ExecuteScriptAsync(script);
-                string json = JsonConvert.DeserializeObject<string>(raw);
-                JObject result = JObject.Parse(json);
-                string href = Convert.ToString(result["href"] ?? string.Empty);
-                bool on1688 = href.IndexOf("1688.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    href.IndexOf("alibaba.com", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool logged = Convert.ToBoolean(result["logged"] ?? false);
-                bool login = Convert.ToBoolean(result["login"] ?? false);
-                _1688LoginVerified = on1688 && logged && !login;
+                SetStatus("正在检测 1688 登录...");
+                LoginProbeResult probe = await Probe1688LoginAsync();
+                _1688LoginVerified = probe.IsVerified;
                 UpdateSetupStatus();
                 UpdateOperationReadiness();
                 if (_1688LoginVerified)
                 {
-                    SetStatus("1688 登录检测通过。");
+                    if (!probe.On1688Domain)
+                    {
+                        _browser.CoreWebView2.Navigate("https://www.1688.com/");
+                    }
+
+                    _setupPanelCollapsed = false;
+                    ApplySetupPanelChrome();
+                    SetStatus("1688 登录检测通过。下一步填写并验证 Ozon API。");
+                    if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688登录：已通过";
                 }
-                else if (!on1688)
+                else if (!probe.IsRelatedPage)
                 {
-                    SetStatus("当前浏览器不在 1688 页面，请先点“打开1688”。");
-                    if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688：当前不在 1688 页面";
+                    if (_browserUrlBox != null)
+                    {
+                        _browserUrlBox.Text = "https://www.1688.com/";
+                    }
+
+                    _browser.CoreWebView2.Navigate("https://www.1688.com/");
+                    SetStatus("已打开 1688。完成登录后再点“检测登录”。");
+                    if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688：已打开，待登录";
+                    if (_setupActionLabel != null) _setupActionLabel.Text = "下一步：完成 1688 登录后检测";
                 }
-                else if (login)
+                else if (probe.OnLoginPage || probe.PageShowsLogin)
                 {
-                    SetStatus("页面仍显示登录入口，请先完成 1688 登录。");
-                    if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688：页面仍显示登录入口";
+                    SetStatus("页面仍在登录状态。请完成 1688 登录后再检测。");
+                    if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688：等待登录完成";
+                    if (_setupActionLabel != null) _setupActionLabel.Text = "下一步：完成 1688 登录后检测";
                 }
                 else
                 {
-                    SetStatus("未确认 1688 已登录，请刷新或重新登录后再检测。");
+                    SetStatus("未确认 1688 已登录。请刷新 1688 页面，或重新登录后再检测。");
                     if (_setup1688StatusLabel != null) _setup1688StatusLabel.Text = "1688：未确认登录";
+                    if (_setupActionLabel != null) _setupActionLabel.Text = "下一步：刷新 1688 后检测";
                 }
             }
             catch (Exception ex)
@@ -6261,19 +7141,19 @@ namespace LitchiOzonRecovery
             Button button = new Button();
             button.Text = text;
             button.AutoSize = false;
-            button.Height = 36;
-            button.Width = Math.Max(76, Math.Min(180, text.Length * 12 + 34));
+            button.Height = 40;
+            button.Width = Math.Max(82, Math.Min(190, text.Length * 12 + 38));
             button.Margin = new Padding(3, 1, 4, 7);
-            button.Padding = new Padding(8, 4, 8, 4);
+            button.Padding = new Padding(8, 5, 8, 5);
             button.FlatStyle = FlatStyle.Flat;
             button.UseVisualStyleBackColor = false;
             button.FlatAppearance.BorderSize = 1;
             button.Cursor = Cursors.Hand;
-            Color normalBack = primary ? PilotGreen : Color.FromArgb(255, 250, 244);
-            Color hoverBack = primary ? PilotGreenDark : Color.FromArgb(255, 240, 225);
-            Color downBack = primary ? Color.FromArgb(145, 52, 0) : Color.FromArgb(246, 226, 207);
-            Color normalBorder = primary ? PilotGreen : Color.FromArgb(230, 211, 195);
-            Color hoverBorder = primary ? PilotGreenDark : Color.FromArgb(220, 174, 136);
+            Color normalBack = primary ? SignalBlue : Color.FromArgb(255, 252, 248);
+            Color hoverBack = primary ? Color.FromArgb(31, 73, 150) : Color.FromArgb(239, 246, 255);
+            Color downBack = primary ? Color.FromArgb(24, 56, 118) : Color.FromArgb(222, 235, 252);
+            Color normalBorder = primary ? SignalBlue : Color.FromArgb(221, 226, 232);
+            Color hoverBorder = primary ? Color.FromArgb(31, 73, 150) : Color.FromArgb(177, 199, 230);
             button.FlatAppearance.BorderColor = normalBorder;
             button.BackColor = normalBack;
             button.ForeColor = primary ? Color.White : TextStrong;
@@ -6320,8 +7200,8 @@ namespace LitchiOzonRecovery
             label.Padding = new Padding(8, 4, 8, 4);
             label.Cursor = Cursors.Hand;
             label.Font = new Font("Microsoft YaHei UI", 9.3F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            Color normalBack = primary ? PilotGreen : Color.FromArgb(255, 246, 238);
-            Color hoverBack = primary ? PilotGreenDark : Color.FromArgb(255, 234, 215);
+            Color normalBack = primary ? SignalBlue : Color.FromArgb(255, 252, 248);
+            Color hoverBack = primary ? Color.FromArgb(31, 73, 150) : Color.FromArgb(239, 246, 255);
             label.BackColor = normalBack;
             label.ForeColor = primary ? Color.White : TextStrong;
             label.Resize += delegate { SetRoundedRegion(label, 14); };
@@ -6715,14 +7595,7 @@ namespace LitchiOzonRecovery
             string normalized = string.IsNullOrWhiteSpace(tabKey) ? "setup" : tabKey.Trim().ToLowerInvariant();
             if (normalized == "1" || normalized == "operation")
             {
-                if (_1688LoginVerified && _ozonCredentialsVerified)
-                {
-                    SelectOperationTab();
-                }
-                else
-                {
-                    SelectSetupTab();
-                }
+                SelectOperationTab();
             }
             else if (normalized == "2" || normalized == "overview")
             {

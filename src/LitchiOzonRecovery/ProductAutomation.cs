@@ -117,6 +117,22 @@ namespace LitchiOzonRecovery
         }
     }
 
+    internal sealed class OzonListingPricePreview
+    {
+        public bool Success { get; set; }
+        public decimal SourcePrice { get; set; }
+        public decimal DomesticDeliveryFee { get; set; }
+        public decimal InternationalLogisticsFee { get; set; }
+        public decimal EstimatedCost { get; set; }
+        public decimal PlatformCommissionPercent { get; set; }
+        public decimal PromotionExpensePercent { get; set; }
+        public decimal TargetProfitPercent { get; set; }
+        public decimal SuggestedSellingPrice { get; set; }
+        public int WeightGrams { get; set; }
+        public string MatchedFeeRule { get; set; }
+        public string ErrorMessage { get; set; }
+    }
+
     internal sealed class ProductAutomationService
     {
         private const int MaxOzonImageCount = 5;
@@ -243,6 +259,45 @@ namespace LitchiOzonRecovery
         public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey)
         {
             return UploadToOzon(products, options, clientId, apiKey, null);
+        }
+
+        public OzonListingPricePreview PreviewOzonListingPrice(SourceProduct product, SourcingOptions options)
+        {
+            OzonListingPricePreview preview = new OzonListingPricePreview();
+            if (product == null)
+            {
+                preview.ErrorMessage = "Product is required.";
+                return preview;
+            }
+
+            try
+            {
+                ProfitInput input = BuildOzonProfitInput(product, options);
+                ProfitEstimate estimate = ProfitCalculatorService.Calculate(options == null ? null : options.Config, options == null ? null : options.FeeRules, input);
+                if (estimate == null || estimate.MatchedRule == null)
+                {
+                    preview.ErrorMessage = "No matched logistics rule.";
+                    return preview;
+                }
+
+                preview.Success = true;
+                preview.SourcePrice = input.SourcePrice;
+                preview.DomesticDeliveryFee = input.DeliveryFee;
+                preview.InternationalLogisticsFee = estimate.LogisticsFee;
+                preview.EstimatedCost = estimate.EstimatedCost;
+                preview.PlatformCommissionPercent = estimate.PlatformCommissionPercent;
+                preview.PromotionExpensePercent = estimate.PromotionExpensePercent;
+                preview.TargetProfitPercent = ResolvePreviewTargetProfitPercent(options == null ? null : options.Config, input);
+                preview.SuggestedSellingPrice = RoundMoney(Math.Max(1m, estimate.SuggestedSellingPrice));
+                preview.WeightGrams = (int)input.WeightGrams;
+                preview.MatchedFeeRule = BuildFeeRuleLabel(estimate.MatchedRule);
+                return preview;
+            }
+            catch (Exception ex)
+            {
+                preview.ErrorMessage = ex.Message;
+                return preview;
+            }
         }
 
         public OzonImportResult UploadToOzon(IList<SourceProduct> products, SourcingOptions options, string clientId, string apiKey, Action<string> log)
@@ -3357,6 +3412,20 @@ namespace LitchiOzonRecovery
 
         private static decimal CalculateOzonListingPrice(SourceProduct product, SourcingOptions options)
         {
+            ProfitInput input = BuildOzonProfitInput(product, options);
+
+            ProfitEstimate estimate = ProfitCalculatorService.Calculate(options == null ? null : options.Config, options == null ? null : options.FeeRules, input);
+            if (estimate == null || estimate.MatchedRule == null)
+            {
+                throw new InvalidOperationException("没有匹配的国际物流/运费规则，无法按定价公式计算售价。请先补齐 fee.txt 或选择匹配类目。");
+            }
+
+            decimal formulaPrice = estimate != null && estimate.SuggestedSellingPrice > 0m ? estimate.SuggestedSellingPrice : input.SourcePrice;
+            return RoundMoney(Math.Max(1m, formulaPrice));
+        }
+
+        private static ProfitInput BuildOzonProfitInput(SourceProduct product, SourcingOptions options)
+        {
             string currency = string.IsNullOrEmpty(options == null ? null : options.CurrencyCode) ? "CNY" : options.CurrencyCode;
             decimal sourcePrice = Math.Max(1m, product == null ? 0m : product.PriceCny);
             int weight = ResolvePositiveIntAttribute(product, "weight_g", 500);
@@ -3374,15 +3443,33 @@ namespace LitchiOzonRecovery
             input.PromotionExpensePercent = config == null ? 0m : config.PromotionExpensePercent;
             input.TargetProfitPercent = config == null ? 0m : config.TargetProfitPercent;
             input.FulfillmentMode = string.IsNullOrEmpty(options == null ? null : options.FulfillmentMode) ? "FBS" : options.FulfillmentMode;
+            return input;
+        }
 
-            ProfitEstimate estimate = ProfitCalculatorService.Calculate(config, options == null ? null : options.FeeRules, input);
-            if (estimate == null || estimate.MatchedRule == null)
+        private static decimal ResolvePreviewTargetProfitPercent(AppConfig config, ProfitInput input)
+        {
+            if (input != null && input.TargetProfitPercent > 0m)
             {
-                throw new InvalidOperationException("没有匹配的国际物流/运费规则，无法按定价公式计算售价。请先补齐 fee.txt 或选择匹配类目。");
+                return input.TargetProfitPercent;
             }
 
-            decimal formulaPrice = estimate != null && estimate.SuggestedSellingPrice > 0m ? estimate.SuggestedSellingPrice : sourcePrice;
-            return RoundMoney(Math.Max(1m, formulaPrice));
+            return config != null && config.TargetProfitPercent > 0m ? config.TargetProfitPercent : 30m;
+        }
+
+        private static string BuildFeeRuleLabel(FeeRule rule)
+        {
+            if (rule == null)
+            {
+                return string.Empty;
+            }
+
+            string category = !string.IsNullOrWhiteSpace(rule.Category2) ? rule.Category2 : rule.Category1;
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                return category + " / " + rule.CategoryId2;
+            }
+
+            return Convert.ToString(rule.CategoryId2, CultureInfo.InvariantCulture);
         }
 
         private static List<long> BuildFeeRuleCategoryCandidates(SourcingOptions options)

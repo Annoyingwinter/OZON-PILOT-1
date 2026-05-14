@@ -30,18 +30,16 @@ namespace LitchiOzonRecovery
             return new RussianImageAdaptationOptions
             {
                 ApiBaseUrl = FirstNonEmpty(
-                    Environment.GetEnvironmentVariable("CODEXMANAGER_BASE_URL"),
-                    Environment.GetEnvironmentVariable("OPENAI_BASE_URL"),
-                    "http://127.0.0.1:48760"),
+                    Environment.GetEnvironmentVariable("SUB2API_BASE_URL"),
+                    "http://127.0.0.1:18080"),
                 ApiKey = FirstNonEmpty(
-                    Environment.GetEnvironmentVariable("CODEXMANAGER_API_KEY"),
-                    Environment.GetEnvironmentVariable("OPENAI_API_KEY")),
+                    Environment.GetEnvironmentVariable("SUB2API_API_KEY")),
                 ResponsesModel = FirstNonEmpty(
                     Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_RESPONSES_MODEL"),
-                    "gpt-5.4-mini"),
+                    "gpt-5.2"),
                 ImageModel = FirstNonEmpty(
                     Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_MODEL"),
-                    "gpt-image-1.5"),
+                    "gpt-image-2"),
                 OutputDirectory = FirstNonEmpty(
                     Environment.GetEnvironmentVariable("RUSSIAN_IMAGE_OUTPUT_DIR"),
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "generated-images")),
@@ -112,7 +110,7 @@ namespace LitchiOzonRecovery
 
             if (string.IsNullOrWhiteSpace(resolved.ApiKey))
             {
-                result.ErrorMessage = "CODEXMANAGER_API_KEY or OPENAI_API_KEY is required.";
+                result.ErrorMessage = "SUB2API_API_KEY is required.";
                 return result;
             }
 
@@ -150,6 +148,8 @@ namespace LitchiOzonRecovery
             imageTool["moderation"] = "auto";
             tools.Add(imageTool);
             payload["tools"] = tools;
+            payload["tool_choice"] = new JObject(
+                new JProperty("type", "image_generation"));
 
             JArray content = new JArray();
             content.Add(new JObject(
@@ -507,7 +507,7 @@ namespace LitchiOzonRecovery
 
         private static string BuildUrl(string baseUrl, string path)
         {
-            string cleanBase = string.IsNullOrWhiteSpace(baseUrl) ? "http://127.0.0.1:48760" : baseUrl.TrimEnd('/');
+            string cleanBase = string.IsNullOrWhiteSpace(baseUrl) ? "http://127.0.0.1:18080" : baseUrl.TrimEnd('/');
             return cleanBase + path;
         }
 

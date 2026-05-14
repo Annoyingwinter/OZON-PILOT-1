@@ -1,0 +1,13 @@
+{
+  "name": "ozon-pilot-electron-shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modern Electron shell for OZON-PILOT local workstation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^37.1.0"
+  }
+}

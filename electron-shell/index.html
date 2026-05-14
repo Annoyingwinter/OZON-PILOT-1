@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OZON-PILOT Workstation</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">OP</div>
+          <div class="brand-copy">
+            <div class="brand-title">OZON-PILOT</div>
+            <div class="brand-subtitle">本地工作台预览</div>
+          </div>
+        </div>
+
+        <nav class="workflow-nav" id="workflow-nav"></nav>
+
+        <div class="topbar-actions">
+          <button class="glass-btn" id="drawer-toggle" type="button">收起面板</button>
+          <button class="primary-btn" id="primary-action" type="button">去登录 1688</button>
+        </div>
+      </header>
+
+      <main class="workspace" id="workspace">
+        <section class="browser-stage">
+          <div class="browser-toolbar">
+            <div class="browser-status">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">正在读取本地状态</span>
+            </div>
+            <div class="browser-toolbar-actions">
+              <button class="icon-btn" id="browser-home" type="button" title="打开 1688">1688</button>
+              <button class="icon-btn" id="browser-ozon" type="button" title="打开 Ozon">Ozon</button>
+              <button class="icon-btn" id="browser-refresh" type="button" title="刷新">刷新</button>
+            </div>
+          </div>
+
+          <div class="browser-surface">
+            <webview id="browser-view" partition="persist:ozon-pilot"></webview>
+            <div class="browser-empty" id="browser-empty">
+              <div class="empty-title" id="empty-title">浏览器工作区</div>
+              <div class="empty-copy" id="empty-copy">1688 和 Ozon 的实际操作现场应该留在这里。控制面板只在需要时展开，不再长期压缩浏览器。</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="control-drawer" id="control-drawer">
+          <section class="drawer-panel hero-panel">
+            <div class="panel-kicker">下一步</div>
+            <h1 id="hero-title">先完成基础准备</h1>
+            <p id="hero-text">
+              先确认 1688 已登录，再保存 Ozon API，最后检查 image2 和类目规则。准备齐全后，这块面板就可以收起。
+            </p>
+            <div class="hero-actions">
+              <button class="primary-btn" id="hero-primary-action" type="button">去登录 1688</button>
+              <button class="glass-btn" id="hero-secondary-action" type="button">打开 Ozon</button>
+            </div>
+          </section>
+
+          <section class="drawer-panel readiness-panel">
+            <div class="panel-head">
+              <h2>准备状态</h2>
+              <span class="panel-note" id="ready-summary">还差 3 项</span>
+            </div>
+            <div class="readiness-list" id="readiness-list"></div>
+          </section>
+
+          <section class="drawer-panel" id="page-panel"></section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

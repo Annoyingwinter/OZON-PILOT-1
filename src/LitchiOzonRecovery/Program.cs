@@ -27,6 +27,8 @@ namespace LitchiOzonRecovery
 
         private static void ConfigureNativeDependencies(AppPaths paths)
         {
+            ConfigureLocalSub2ApiDefaults();
+
             string webViewLoaderDirectory = paths.WebViewLoaderDirectory;
             if (!string.IsNullOrEmpty(webViewLoaderDirectory))
             {
@@ -42,6 +44,41 @@ namespace LitchiOzonRecovery
 
                 PrependPath(runtimeLoaderDirectory);
                 PrependPath(AppDomain.CurrentDomain.BaseDirectory);
+            }
+        }
+
+        private static void ConfigureLocalSub2ApiDefaults()
+        {
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SUB2API_BASE_URL")))
+            {
+                Environment.SetEnvironmentVariable("SUB2API_BASE_URL", "http://127.0.0.1:18080");
+            }
+
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SUB2API_API_KEY")))
+            {
+                return;
+            }
+
+            try
+            {
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string keyPath = Path.Combine(localAppData, "OzonPilot", "sub2api-local", "ozon-pilot-image2-key.txt");
+                if (!File.Exists(keyPath))
+                {
+                    return;
+                }
+
+                string key = File.ReadAllText(keyPath).Trim();
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    Environment.SetEnvironmentVariable("SUB2API_API_KEY", key);
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
             }
         }
 

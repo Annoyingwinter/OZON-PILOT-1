@@ -37,7 +37,7 @@ namespace LitchiOzonRecovery
 
             if (string.IsNullOrWhiteSpace(_imageOptions.ApiKey))
             {
-                Write(log, "[image-adapter] skipped: CODEXMANAGER_API_KEY or OPENAI_API_KEY is not configured.");
+                Write(log, "[image-adapter] skipped: SUB2API_API_KEY is not configured.");
                 return;
             }
 
@@ -77,7 +77,7 @@ namespace LitchiOzonRecovery
 
             if (string.IsNullOrWhiteSpace(_imageOptions.ApiKey))
             {
-                Write(log, "[image-adapter] skipped: CODEXMANAGER_API_KEY or OPENAI_API_KEY is not configured.");
+                Write(log, "[image-adapter] skipped: SUB2API_API_KEY is not configured.");
                 return false;
             }
 
